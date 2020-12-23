@@ -10,6 +10,21 @@ function Line.create(ax, ay, bx, by)
   return self
 end
 
+function Line:vector()
+  return self.bx - self.ax, self.by - self.ay
+end
+
+function Line:unit_vector()
+  local x, y = self:vector()
+  d = math.sqrt(x * x + y * y)
+  return x / d, y / d
+end
+
+function Line:norm_vector()
+  local x, y = self:unit_vector()
+  return -y, x
+end
+
 function Line:describe()
   print("AX", self.ax)
   print("AY", self.ay)
