@@ -1,5 +1,6 @@
-local Line = require 'line'
 local lines = require 'lines'
+local Line = require 'line'
+local Map = require 'map'
 local Wall = require 'wall'
 
 Operation = {
@@ -13,11 +14,11 @@ State = {
   IC_DRAWING_WALL_NORMAL = 102,
 }
 
+state = State.IDLE
 undo_stack = {}
 redo_stack = {}
-walls = {}
 
-state = State.IDLE
+map = Map({ next_id = 1 })
 
 zoom_factor = 9
 offset_x = 0
@@ -36,14 +37,6 @@ CANVAS_WIDTH = 600
 CANVAS_HEIGHT = 600
 
 info_line = 0
-
-next_id = 1
-
-function getId()
-  local ret = next_id
-  next_id = next_id + 1
-  return ret
-end
 
 function interp(s, tab)
   return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
@@ -141,28 +134,16 @@ function draw_history()
   end
 end
 
-local function get_index_by_id(tab, id)
-  local index = nil
-  for i, v in ipairs (tab) do 
-    if (v.id == val) then
-      index = i 
-    end
-  end
-  return index
-end
-
 
 function undo()
   if table.getn(undo_stack) == 0 then
     return
   end
   local tail = table.remove(undo_stack, #undo_stack)
-  print("UNDOING", tail.obj.id)
   table.insert(redo_stack, tail)
 
   if tail.op == Operation.ADD_WALL then
-    local index = get_index_by_id(walls, tail.obj.id)
-    table.remove(walls, index)
+    map:remove_object(tail.obj.id, 'wall')
   end
 end
 
@@ -171,10 +152,9 @@ function redo()
     return
   end
   local tail = table.remove(redo_stack, #redo_stack)
-  print("REDOING", tail.obj.id)
   table.insert(undo_stack, tail)
   if tail.op == Operation.ADD_WALL then
-    table.insert(walls, tail.obj)
+    map:add_wall(tail.obj)
   end
 end
 
@@ -245,12 +225,12 @@ function love.mousepressed(x, y, button, istouch)
     end
   elseif state == State.IC_DRAWING_WALL_NORMAL then
     if button == 1 then
-      local wall = Wall(getId(), wall_line_r)
+      local wall = Wall(map:get_id(), wall_line_r)
       undoable({
         op = Operation.ADD_WALL,
         obj = wall
       })
-      table.insert(walls, wall)
+      map:add_wall(wall)
       state = State.IDLE
       love.mouse.setPosition(wall_line_r.bx * zoom_factor + CANVAS_X, wall_line_r.by * zoom_factor + CANVAS_Y)
     end
@@ -304,7 +284,7 @@ function love.draw()
   draw_history()
 
   -- draw all the walls
-  for i, w in ipairs(walls) do
+  for i, w in ipairs(map.walls) do
     local wall_line_c = Line.create(
     w.line.ax * zoom_factor + CANVAS_X,
     w.line.ay * zoom_factor + CANVAS_Y,
