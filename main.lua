@@ -2,28 +2,18 @@ local lines = require 'lines'
 local Line = require 'line'
 local Map = require 'map'
 local Wall = require 'wall'
+local editor = require 'editor_state'
+
+local State = editor.State
+local EditorState = editor.EditorState
 
 Operation = {
   ADD_WALL = 1,
 }
 
-State = {
-  IDLE = 0,
-  IC_IDLE = 100,
-  IC_DRAWING_WALL = 101,
-  IC_DRAWING_WALL_NORMAL = 102,
-}
-
-state = State.IDLE
-undo_stack = {}
-redo_stack = {}
+e = EditorState()
 
 map = Map({ next_id = 1 })
-
-zoom_factor = 9
-offset_x = 0
-offset_y = 0
-wall_line_r = nil
 
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
@@ -103,9 +93,9 @@ function draw_grid()
     while x < CANVAS_WIDTH do
       table.insert(dots, CANVAS_X + x)
       table.insert(dots, CANVAS_Y + y)
-      x = x + zoom_factor
+      x = x + e.zoom_factor
     end
-    y = y + zoom_factor
+    y = y + e.zoom_factor
   end
 
   love.graphics.setColor(1, 1, 1, 0.5)
@@ -115,58 +105,22 @@ end
 function draw_history()
   love.graphics.setColor(1, 0, 0.5, 1)
   local i = 0
-  for j = 1, #redo_stack do
+  for j = 1, #e.redo_stack do
     local text
-    if redo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = redo_stack[j].obj.id }
+    if e.redo_stack[j].op == Operation.ADD_WALL then
+      text = "Wall ${id}" % { id = e.redo_stack[j].obj.id }
       love.graphics.print(text, WINDOW_WIDTH - SIDEBAR_WIDTH - 20 + PADDING, WINDOW_HEIGHT - HISTORY_HEIGHT - 20 + PADDING + i * 16)
     end
     i = i + 1
   end
   love.graphics.setColor(0.5, 0, 1, 1)
-  for j = #undo_stack, 1, -1 do
+  for j = #e.undo_stack, 1, -1 do
     local text
-    if undo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = undo_stack[j].obj.id }
+    if e.undo_stack[j].op == Operation.ADD_WALL then
+      text = "Wall ${id}" % { id = e.undo_stack[j].obj.id }
       love.graphics.print(text, WINDOW_WIDTH - SIDEBAR_WIDTH - 20 + PADDING, WINDOW_HEIGHT - HISTORY_HEIGHT - 20 + PADDING + i * 16)
     end
     i = i + 1
-  end
-end
-
-
-function undo()
-  if table.getn(undo_stack) == 0 then
-    return
-  end
-  local tail = table.remove(undo_stack, #undo_stack)
-  table.insert(redo_stack, tail)
-
-  if tail.op == Operation.ADD_WALL then
-    map:remove_object(tail.obj.id, 'wall')
-  end
-end
-
-function redo()
-  if table.getn(redo_stack) == 0 then
-    return
-  end
-  local tail = table.remove(redo_stack, #redo_stack)
-  table.insert(undo_stack, tail)
-  if tail.op == Operation.ADD_WALL then
-    map:add_wall(tail.obj)
-  end
-end
-
-function undoable(op, clean_redo_stack)
-  if clean_redo_stack == nil then
-    clean_redo_stack = true
-  end
-  table.insert(undo_stack, op)
-  if clean_redo_stack then
-    for k in pairs(redo_stack) do
-      redo_stack[k] = nil
-    end
   end
 end
 
@@ -186,53 +140,43 @@ function info_print(template, ...)
 end
 
 function draw_state_info()
-  local state_str = "Unknown"
-  if state == State.IDLE then
-    state_str = "Idle"
-  elseif state == State.IC then
-    state_str = "In Canvas"
-  elseif state == State.IC_DRAWING_WALL then
-    state_str = "Drawing a Wall"
-  elseif state == State.IC_DRAWING_WALL_NORMAL then
-    state_str = "Drawing a Wall's Normal"
-  end
   love.graphics.setColor(0, 0.8, 0.5, 1)
-  info_print(state_str)
+  info_print(e:state_str())
 end
 
 function love.keypressed(key, unicode)
-  if state == State.IDLE or state == State.IC then
+  if e.state == State.IDLE or e.state == State.IC then
     if key == '[' then
-      undo()
+      e:undo(map)
     elseif key == ']' then
-      redo()
+      e:redo(map)
     end
-  elseif state == State.IC_DRAWING_WALL or state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
-      state = State.IDLE
+      e.state = State.IDLE
     end
   end
 end
 
 function love.mousepressed(x, y, button, istouch)
-  local rx = math.floor((x - CANVAS_X) / zoom_factor)
-  local ry = math.floor((y - CANVAS_Y) / zoom_factor)
+  local rx = math.floor((x - CANVAS_X) / e.zoom_factor)
+  local ry = math.floor((y - CANVAS_Y) / e.zoom_factor)
 
-  if state == State.IC then
+  if e.state == State.IC then
     if button == 1 then
-      state = State.IC_DRAWING_WALL
-      wall_line_r = Line.create(rx, ry, rx, ry)
+      e.state = State.IC_DRAWING_WALL
+      e.wall_line_r = Line.create(rx, ry, rx, ry)
     end
-  elseif state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_WALL_NORMAL then
     if button == 1 then
-      local wall = Wall(map:get_id(), wall_line_r)
-      undoable({
+      local wall = Wall(map:get_id(), e.wall_line_r)
+      e:undoable({
         op = Operation.ADD_WALL,
         obj = wall
       })
       map:add_wall(wall)
-      state = State.IDLE
-      love.mouse.setPosition(wall_line_r.bx * zoom_factor + CANVAS_X, wall_line_r.by * zoom_factor + CANVAS_Y)
+      e.state = State.IDLE
+      love.mouse.setPosition(e.wall_line_r.bx * e.zoom_factor + CANVAS_X, e.wall_line_r.by * e.zoom_factor + CANVAS_Y)
     end
   end
 end
@@ -245,39 +189,38 @@ function love.draw()
   
   draw_grid()
 
-
   local mx, my = love.mouse.getPosition()
-  local rx = math.floor((mx - CANVAS_X) / zoom_factor)
-  local ry = math.floor((my - CANVAS_Y) / zoom_factor)
+  local rx = math.floor((mx - CANVAS_X) / e.zoom_factor)
+  local ry = math.floor((my - CANVAS_Y) / e.zoom_factor)
 
 
   -- state detection
   local is_in_canvas = in_canvas(mx, my)
 
-  if state == State.IDLE then
+  if e.state == State.IDLE then
     if is_in_canvas then
-      state = State.IC
+      e.state = State.IC
     end
-  elseif state == State.IC then
+  elseif e.state == State.IC then
     if not is_in_canvas then
-      state = State.IDLE
+      e.state = State.IDLE
     end
-  elseif state == State.IC_DRAWING_WALL then
+  elseif e.state == State.IC_DRAWING_WALL then
     if love.mouse.isDown(1) then
-      wall_line_r.bx = rx
-      wall_line_r.by = ry
+      e.wall_line_r.bx = rx
+      e.wall_line_r.by = ry
     else
       if is_in_canvas then
-        if wall_line_r.ax == wall_line_r.bx and wall_line_r.ay == wall_line_r.by then 
-          state = State.IC
+        if e.wall_line_r.ax == e.wall_line_r.bx and e.wall_line_r.ay == e.wall_line_r.by then 
+          e.state = State.IC
         else
-          state = State.IC_DRAWING_WALL_NORMAL
+          e.state = State.IC_DRAWING_WALL_NORMAL
         end
       else
-        state = State.IDLE
+        e.state = State.IDLE
       end
     end
-  elseif state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_WALL_NORMAL then
   end
   
   draw_state_info()
@@ -286,39 +229,39 @@ function love.draw()
   -- draw all the walls
   for i, w in ipairs(map.walls) do
     local wall_line_c = Line.create(
-    w.line.ax * zoom_factor + CANVAS_X,
-    w.line.ay * zoom_factor + CANVAS_Y,
-    w.line.bx * zoom_factor + CANVAS_X,
-    w.line.by * zoom_factor + CANVAS_Y)
+    w.line.ax * e.zoom_factor + CANVAS_X,
+    w.line.ay * e.zoom_factor + CANVAS_Y,
+    w.line.bx * e.zoom_factor + CANVAS_X,
+    w.line.by * e.zoom_factor + CANVAS_Y)
 
     love.graphics.setColor(1, 1, 1, 0.8)
     love.graphics.line(wall_line_c.ax, wall_line_c.ay, wall_line_c.bx, wall_line_c.by)
 
-    local mid_cx, mid_cy = w.mid_x * zoom_factor + CANVAS_X, w.mid_y * zoom_factor + CANVAS_Y
+    local mid_cx, mid_cy = w.mid_x * e.zoom_factor + CANVAS_X, w.mid_y * e.zoom_factor + CANVAS_Y
 
     love.graphics.setColor(0, 1, 1, 0.8)
     love.graphics.line(mid_cx, mid_cy, mid_cx + w.norm_x * 5, mid_cy + w.norm_y * 5)
   end
   
   -- draw the cursor
-  if state == State.IDLE or state == State.IC_DRAWING_WALL_NORMAL + 1 then
+  if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL + 1 then
     love.mouse.setVisible(true)
-  elseif state == State.IC or state == State.IC_DRAWING_WALL then
+  elseif e.state == State.IC or e.state == State.IC_DRAWING_WALL then
     love.mouse.setVisible(false)
-    local cx = rx * zoom_factor + CANVAS_X
-    local cy = ry * zoom_factor + CANVAS_Y
+    local cx = rx * e.zoom_factor + CANVAS_X
+    local cy = ry * e.zoom_factor + CANVAS_Y
 
     love.graphics.setColor(1, 1, 0, 1)
     love.graphics.line(cx, cy - 10, cx, cy + 10)
     love.graphics.line(cx - 10, cy, cx + 10, cy)
   end
 
-  if state == State.IC_DRAWING_WALL then
+  if e.state == State.IC_DRAWING_WALL then
     local wall_line_c = Line.create(
-     wall_line_r.ax * zoom_factor + CANVAS_X,
-     wall_line_r.ay * zoom_factor + CANVAS_Y,
-     rx * zoom_factor + CANVAS_X,
-     ry * zoom_factor + CANVAS_Y)
+     e.wall_line_r.ax * e.zoom_factor + CANVAS_X,
+     e.wall_line_r.ay * e.zoom_factor + CANVAS_Y,
+     rx * e.zoom_factor + CANVAS_X,
+     ry * e.zoom_factor + CANVAS_Y)
  
     love.graphics.setColor(1, 0, 0, 1)
     love.graphics.line(wall_line_c.ax, wall_line_c.ay - 10, wall_line_c.ax, wall_line_c.ay + 10)
@@ -327,12 +270,12 @@ function love.draw()
     love.graphics.line(wall_line_c.ax, wall_line_c.ay, wall_line_c.bx, wall_line_c.by)
   end
 
-  if state == State.IC_DRAWING_WALL_NORMAL then 
+  if e.state == State.IC_DRAWING_WALL_NORMAL then 
     local wall_line_c = Line.create(
-    wall_line_r.ax * zoom_factor + CANVAS_X,
-    wall_line_r.ay * zoom_factor + CANVAS_Y,
-    wall_line_r.bx * zoom_factor + CANVAS_X,
-    wall_line_r.by * zoom_factor + CANVAS_Y)
+    e.wall_line_r.ax * e.zoom_factor + CANVAS_X,
+    e.wall_line_r.ay * e.zoom_factor + CANVAS_Y,
+    e.wall_line_r.bx * e.zoom_factor + CANVAS_X,
+    e.wall_line_r.by * e.zoom_factor + CANVAS_Y)
  
     love.graphics.setColor(1, 0.8, 0, 1)
     love.graphics.line(wall_line_c.ax, wall_line_c.ay, wall_line_c.bx, wall_line_c.by)
@@ -340,7 +283,7 @@ function love.draw()
     local mid_x, mid_y = (wall_line_c.ax + wall_line_c.bx) / 2, (wall_line_c.ay + wall_line_c.by) / 2
     local norm_x, norm_y = wall_line_c:norm_vector()
 
-    local dot = (rx - wall_line_r.ax) * norm_x + (ry - wall_line_r.ay) * norm_y
+    local dot = (rx - e.wall_line_r.ax) * norm_x + (ry - e.wall_line_r.ay) * norm_y
     love.graphics.setColor(1, 0.8, 0, 1)
     info_print('norm_x = {}, norm_y = {}', norm_x, norm_y)
     info_print('dot = {}', dot)
@@ -349,13 +292,13 @@ function love.draw()
     love.graphics.line(mid_x, mid_y, mid_x + norm_x * 20, mid_y + norm_y * 20)
 
     if dot < 0 then
-      wall_line_r.ax, wall_line_r.ay, wall_line_r.bx, wall_line_r.by = wall_line_r.bx, wall_line_r.by, wall_line_r.ax, wall_line_r.ay
+      e.wall_line_r.ax, e.wall_line_r.ay, e.wall_line_r.bx, e.wall_line_r.by = e.wall_line_r.bx, e.wall_line_r.by, e.wall_line_r.ax, e.wall_line_r.ay
     end
   end
 
   love.graphics.setColor(0.8, 0.8, 0.8, 1)
   info_print('mx = {}, my = {}', mx, my)
   info_print('rx = {}, ry = {}', rx, ry)
-  info_print('ox = {}, oy = {}', offset_x, offset_y)
+  info_print('ox = {}, oy = {}', e.offset_x, e.offset_y)
 end
 
