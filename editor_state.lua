@@ -25,7 +25,7 @@ function EditorState.new()
   local self = {}
   setmetatable(self, EditorState)
   self.state = State.IDLE
-  self.sidebar = Sidebar.TOOLS
+  self.sidebar = Sidebar.INFO
   self.undo_stack = {}
   self.redo_stack = {}
 

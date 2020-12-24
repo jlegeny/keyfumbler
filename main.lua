@@ -1,3 +1,5 @@
+local bitser = require 'bitser'
+
 local lines = require 'lines'
 local Line = require 'line'
 local Map = require 'map'
@@ -9,6 +11,8 @@ local EditorState = editor.EditorState
 
 local LevelRenderer = require 'renderer_level'
 local ToolsRenderer = require 'renderer_tools'
+local HistoryRenderer = require 'renderer_history'
+local InfoRenderer = require 'renderer_info'
 
 Operation = {
   ADD_WALL = 1,
@@ -19,17 +23,11 @@ e = EditorState()
 map = Map({ next_id = 1 })
 level_renderer = LevelRenderer()
 tools_renderer = ToolsRenderer()
+history_renderer = HistoryRenderer()
+info_renderer = InfoRenderer()
 
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
-
-info_line = 0
-
-function interp(s, tab)
-  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
-end
-
-getmetatable("").__mod = interp
 
 function love.load()
   -- window
@@ -42,44 +40,8 @@ function love.load()
 
   level_renderer:setup(20, 20, 500, 500)
   tools_renderer:setup(540, 20, 250, 500)
-end
-
-function draw_history()
-  love.graphics.setColor(1, 0, 0.5, 1)
-  local i = 0
-  for j = 1, #e.redo_stack do
-    local text
-    if e.redo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = e.redo_stack[j].obj.id }
-      love.graphics.print(text, WINDOW_WIDTH - SIDEBAR_WIDTH - 20 + PADDING, WINDOW_HEIGHT - HISTORY_HEIGHT - 20 + PADDING + i * 16)
-    end
-    i = i + 1
-  end
-  love.graphics.setColor(0.5, 0, 1, 1)
-  for j = #e.undo_stack, 1, -1 do
-    local text
-    if e.undo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = e.undo_stack[j].obj.id }
-      love.graphics.print(text, WINDOW_WIDTH - SIDEBAR_WIDTH - 20 + PADDING, WINDOW_HEIGHT - HISTORY_HEIGHT - 20 + PADDING + i * 16)
-    end
-    i = i + 1
-  end
-end
-
-
-function info_print(template, ...)
-  local args = {...}
-
-  for i, v in ipairs(args) do
-    template = template:gsub('{}', v, 1)
-  end
-  love.graphics.print(template, 700, 20 + info_line * 16)
-  info_line = info_line + 1
-end
-
-function draw_state_info()
-  love.graphics.setColor(0, 0.8, 0.5, 1)
-  info_print(e:state_str())
+  history_renderer:setup(540, 20, 250, 500)
+  info_renderer:setup(540, 20, 250, 500)
 end
 
 function love.keypressed(key, unicode)
@@ -120,13 +82,18 @@ function love.mousepressed(mx, my, button, istouch)
 end
 
 function love.draw()
-  info_line = 0
   love.graphics.setColor(1, 1, 1, 1)
 
   level_renderer:draw_canvas()
   
   if e.sidebar == Sidebar.TOOLS then
     tools_renderer:draw_canvas()
+  elseif e.sidebar == Sidebar.HISTORY then
+    history_renderer:draw_canvas()
+    history_renderer:draw(e)
+  elseif e.sidebar == Sidebar.INFO then
+    info_renderer:reset()
+    info_renderer:draw_canvas()
   end
 
   local mx, my = love.mouse.getPosition()
@@ -162,7 +129,7 @@ function love.draw()
   end
   
   level_renderer:draw(map, e)
-  draw_state_info()
+  info_renderer:write('green', e:state_str())
 
   -- draw the cursor
   if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL then
@@ -190,9 +157,8 @@ function love.draw()
     local norm_rx, norm_ry = e.wall_line_r:norm_vector()
 
     local dot = (rx - e.wall_line_r.ax) * norm_rx + (ry - e.wall_line_r.ay) * norm_ry
-    love.graphics.setColor(1, 0.8, 0, 1)
-    info_print('norm_x = {}, norm_y = {}', norm_rx, norm_ry)
-    info_print('dot = {}', dot)
+    info_renderer:write('green', 'norm_x = {}, norm_y = {}', norm_rx, norm_ry)
+    info_renderer:write('green', 'dot = {}', dot)
 
     love.graphics.setColor(1, 0, 0, 1)
     
@@ -203,9 +169,13 @@ function love.draw()
     end
   end
 
-  love.graphics.setColor(0.8, 0.8, 0.8, 1)
-  info_print('mx = {}, my = {}', mx, my)
-  info_print('rx = {}, ry = {}', rx, ry)
-  info_print('ox = {}, oy = {}', e.offset_x, e.offset_y)
+  info_renderer:write('grey', 'mx = {}, my = {}', mx, my)
+  info_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
+  info_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
+
+  if e.sidebar == Sidebar.INFO then
+    info_renderer:draw()
+  end
+
 end
 
