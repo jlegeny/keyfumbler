@@ -17,6 +17,8 @@ function LevelOverlayRenderer.new(level_renderer)
   self.lr = level_renderer
   self:setup()
 
+  self.mode = 'lines'
+
   return self
 end
 
@@ -27,6 +29,20 @@ function LevelOverlayRenderer:setup()
   self.height = self.lr.height
   self.canvas = love.graphics.newCanvas(self.width, self.height)
   self:pre_render_canvas()
+end
+
+function LevelOverlayRenderer:set_mode(mode)
+  self.mode = mode
+end
+
+function LevelOverlayRenderer:toggle_mode(mode)
+  if self.mode == 'lines' then
+    self.mode = 'fill'
+  elseif self.mode == 'fill' then
+    self.mode = 'distance'
+  elseif self.mode == 'distance' then
+    self.mode = 'lines'
+  end
 end
 
 function LevelOverlayRenderer:pre_render_canvas()
@@ -54,21 +70,32 @@ function LevelOverlayRenderer:draw(map, player)
   love.graphics.line(player_cx, player_cy, eye_cx, eye_cy)
 
   -- highlight colliding walls
-  local res_v = 10
+  local res_v
+  if self.mode == 'fill' then
+    res_v = 320
+  else
+    res_v = 5
+  end
+
   for theta = 0, res_v - 1 do
-    local angle = -player.fov / 2 + theta * player.fov / res_v
+    local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
     local collisions = raycaster.collisions(map, ray)
-    --for i, line in ipairs(collisions) do
-    --  self.lr:draw_line(line)
-    --end
     if #collisions > 0 then
       local closest_collision = raycaster.closest_collision(collisions)
 
       local ccx, ccy = self.lr:canvas_point(closest_collision.x, closest_collision.y)
       love.graphics.line(player_cx, player_cy, ccx, ccy)
-      love.graphics.line(ccx - 4, ccy - 4, ccx + 4, ccy + 4)
-      love.graphics.line(ccx + 4, ccy - 4, ccx - 4, ccy + 4)
+
+      if self.mode == 'line' or self.mode == 'distance' then
+        love.graphics.line(ccx - 4, ccy - 4, ccx + 4, ccy + 4)
+        love.graphics.line(ccx + 4, ccy - 4, ccx - 4, ccy + 4)
+      end
+
+      if self.mode == 'distance' then
+        local dist = math.cos(angle) * math.sqrt(closest_collision.sqd)
+        love.graphics.print(dist, ccx, ccy + theta * 16)
+      end
     end
   end
 end

@@ -35,6 +35,9 @@ e = EditorState()
 
 map = Map({ next_id = 1 })
 player = Player()
+player.rx = 50
+player.ry = 5
+player.rot = -math.pi
 
 level_renderer = LevelRenderer()
 level_overlay_renderer = LevelOverlayRenderer(level_renderer)
@@ -115,6 +118,8 @@ function love.keypressed(key, unicode)
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
+    elseif key == 't' then
+      level_overlay_renderer:toggle_mode()
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
