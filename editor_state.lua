@@ -21,7 +21,6 @@ function EditorState.new()
   self.undo_stack = {}
   self.redo_stack = {}
 
-  self.zoom_factor = 9
   self.offset_x = 0
   self.offset_y = 0
 
