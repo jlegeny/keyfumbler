@@ -5,6 +5,13 @@ State = {
   IC_DRAWING_WALL_NORMAL = 102,
 }
 
+Sidebar = {
+  ITEMS = 0,
+  TOOLS = 1,
+  HISTORY = 2,
+  INFO = 3,
+}
+
 local EditorState = {}
 EditorState.__index = EditorState
 
@@ -18,6 +25,7 @@ function EditorState.new()
   local self = {}
   setmetatable(self, EditorState)
   self.state = State.IDLE
+  self.sidebar = Sidebar.TOOLS
   self.undo_stack = {}
   self.redo_stack = {}
 

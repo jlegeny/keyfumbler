@@ -21,7 +21,7 @@ end
 
 function LevelRenderer:setup(x, y, width, height)
   self.x = x
-  self.y = x
+  self.y = y
   self.width = width
   self.height = height
   self.canvas = love.graphics.newCanvas(self.width, self.height)
@@ -66,7 +66,7 @@ function LevelRenderer:pre_render_canvas()
   love.graphics.setBlendMode('alpha')
 
   love.graphics.setColor(1, 1, 1, 0.4)
-  love.graphics.rectangle('fill', self.x, self.y, self.width, self.height)
+  love.graphics.rectangle('fill', 0, 0, self.width, self.height)
   --
   -- draw the grid
   local dots = {} 
@@ -75,8 +75,8 @@ function LevelRenderer:pre_render_canvas()
   while y < self.height do
     local x = 0
     while x < self.width do
-      table.insert(dots, self.x + x + self.zoom_factor / 2)
-      table.insert(dots, self.y + y + self.zoom_factor / 2)
+      table.insert(dots, x + self.zoom_factor / 2)
+      table.insert(dots, y + self.zoom_factor / 2)
       x = x + self.zoom_factor
     end
     y = y + self.zoom_factor
@@ -90,7 +90,7 @@ function LevelRenderer:pre_render_canvas()
 end
 
 function LevelRenderer:draw_canvas()
-  love.graphics.draw(self.canvas)
+  love.graphics.draw(self.canvas, self.x, self.y)
 end
 
 function LevelRenderer:draw(map, editor_state)

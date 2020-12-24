@@ -8,6 +8,7 @@ local State = editor.State
 local EditorState = editor.EditorState
 
 local LevelRenderer = require 'renderer_level'
+local ToolsRenderer = require 'renderer_tools'
 
 Operation = {
   ADD_WALL = 1,
@@ -17,13 +18,10 @@ e = EditorState()
 
 map = Map({ next_id = 1 })
 level_renderer = LevelRenderer()
+tools_renderer = ToolsRenderer()
 
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
-SIDEBAR_WIDTH = 300
-HISTORY_HEIGHT = 200
-
-PADDING = 4
 
 info_line = 0
 
@@ -42,41 +40,8 @@ function love.load()
   font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 15)
   love.graphics.setFont(font)
 
-  hud = love.graphics.newCanvas(WINDOW_WIDTH, WINDOW_HEIGHT)
   level_renderer:setup(20, 20, 500, 500)
-
-  offscreen_draw_hud()
-end
-
-function offscreen_draw_hud()
-  love.graphics.setCanvas(hud)
-  love.graphics.clear()
-  love.graphics.setBlendMode('alpha')
-
-  -- Tools
-  local keyboard_shortcuts = {
-    '[ Undo       ] Redo',
-    '+ Zoom In    - Zoom out',
-  }
-
-  love.graphics.setColor(1, 1, 1, 0.4)
-  local kbd_shortcuts_rect_x = WINDOW_WIDTH - SIDEBAR_WIDTH - 20
-  local kbd_shortcuts_rect_y = 200
-  love.graphics.rectangle('fill', kbd_shortcuts_rect_x, kbd_shortcuts_rect_y, SIDEBAR_WIDTH, table.getn(keyboard_shortcuts) * 16 + PADDING * 2)
-
-  love.graphics.setColor(1, 1, 1, 0.9)
-  for line, text in ipairs(keyboard_shortcuts) do
-    love.graphics.print(text, kbd_shortcuts_rect_x + PADDING, kbd_shortcuts_rect_y + PADDING + (line - 1) * 16)
-  end
-
-  -- History
-  love.graphics.setColor(1, 1, 1, 0.4)
-  local history_rect_x = WINDOW_WIDTH - SIDEBAR_WIDTH - 20
-  local history_rect_y = WINDOW_HEIGHT - HISTORY_HEIGHT - 20
-  love.graphics.rectangle('fill', history_rect_x, history_rect_y, SIDEBAR_WIDTH, HISTORY_HEIGHT)
-
-  -- set canvas back to original
-  love.graphics.setCanvas()
+  tools_renderer:setup(540, 20, 250, 500)
 end
 
 function draw_history()
@@ -158,9 +123,11 @@ function love.draw()
   info_line = 0
   love.graphics.setColor(1, 1, 1, 1)
 
-  love.graphics.draw(hud)
-  
   level_renderer:draw_canvas()
+  
+  if e.sidebar == Sidebar.TOOLS then
+    tools_renderer:draw_canvas()
+  end
 
   local mx, my = love.mouse.getPosition()
   local rx, ry = level_renderer:rel_point(mx, my)
@@ -196,9 +163,7 @@ function love.draw()
   
   level_renderer:draw(map, e)
   draw_state_info()
-  draw_history()
 
- 
   -- draw the cursor
   if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL then
     love.mouse.setVisible(true)
