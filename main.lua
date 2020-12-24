@@ -29,7 +29,28 @@ info_renderer = InfoRenderer()
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
 
+
+-- FUNCTIONS
+
+function save(filename)
+  local map_str = bitser.dumps(map)
+  love.filesystem.write(filename, map_str)
+end
+
+function restore(filename)
+  local map_str = love.filesystem.newFileData(filename)
+  map = bitser.loadData(map_str:getPointer(), map_str:getSize())
+  setmetatable(map, Map)
+  e.undo_stack = {}
+  e.redo_stack = {}
+end
+
+-- LOVE
+
 function love.load()
+  -- bitser
+  -- bitser.registerClass(Map)
+
   -- window
   love.window.setTitle("Engyne Edytor")
   love.window.setMode(960, 640, {vsync = true})
@@ -42,6 +63,15 @@ function love.load()
   tools_renderer:setup(540, 20, 250, 500)
   history_renderer:setup(540, 20, 250, 500)
   info_renderer:setup(540, 20, 250, 500)
+
+  if love.filesystem.getInfo('scratch.map') ~= nil then
+    restore('scratch.map')
+  end
+end
+
+function love.quit()
+  save('scratch.map')
+  return false
 end
 
 function love.keypressed(key, unicode)
@@ -50,6 +80,10 @@ function love.keypressed(key, unicode)
       e:undo(map)
     elseif key == ']' then
       e:redo(map)
+    elseif key == 'f5' then
+      save('scratch.map')
+    elseif key == 'f9' then
+      restore('scratch.map')
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
