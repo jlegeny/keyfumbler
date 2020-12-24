@@ -4,16 +4,28 @@ local lines = require 'lines'
 local Line = require 'line'
 local Map = require 'map'
 local Wall = require 'wall'
+local Player = require 'player'
 local editor = require 'editor_state'
 
 local State = editor.State
 local EditorState = editor.EditorState
 
 local LevelRenderer = require 'renderer_level'
+local LevelOverlayRenderer = require 'renderer_level_overlay'
 local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
 local TabsRenderer = require 'renderer_tabs'
+local VolumeRenderer = require 'volume_renderer'
+
+
+love.graphics.set_color = function(color)
+  if color == 'grey' then
+    love.graphics.setColor(0.6, 0.6, 0.6, 1)
+  elseif color == 'red' then
+    love.graphics.setColor(1, 0.4, 0, 1)
+  end
+end
 
 Operation = {
   ADD_WALL = 1,
@@ -22,11 +34,15 @@ Operation = {
 e = EditorState()
 
 map = Map({ next_id = 1 })
+player = Player()
+
 level_renderer = LevelRenderer()
+level_overlay_renderer = LevelOverlayRenderer(level_renderer)
 tools_renderer = ToolsRenderer()
 history_renderer = HistoryRenderer()
 info_renderer = InfoRenderer()
 tabs_renderer = TabsRenderer()
+volume_renderer = VolumeRenderer()
 
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
@@ -71,6 +87,8 @@ function love.load()
   history_renderer:setup(540, 60, 320, 500)
   info_renderer:setup(540, 60, 320, 500)
 
+  volume_renderer:setup(540, 300, 320, 200)
+
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
   end
@@ -93,6 +111,10 @@ function love.keypressed(key, unicode)
       save('scratch.map')
     elseif key == 'f9' then
       restore('scratch.map')
+    elseif key == 'r' then
+      love.event.quit('restart')
+    elseif key == 'q' then
+      love.event.quit(0)
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
@@ -128,6 +150,7 @@ function love.draw()
   love.graphics.setColor(1, 1, 1, 1)
 
   level_renderer:draw_canvas()
+  volume_renderer:draw_canvas()
   
   tabs_renderer:draw_canvas()
   tabs_renderer:draw(e)
@@ -175,6 +198,10 @@ function love.draw()
   end
   
   level_renderer:draw(map, e)
+  level_overlay_renderer:draw(map, player)
+
+  volume_renderer:draw(map, player)
+
   info_renderer:write('green', e:state_str())
 
   -- draw the cursor
@@ -221,6 +248,23 @@ function love.draw()
 
   if e.sidebar == Sidebar.INFO then
     info_renderer:draw()
+  end
+
+  local dt = love.timer.getDelta()
+
+  -- player controls
+  if love.keyboard.isDown('a') then
+    player.rot = player.rot + dt * player.rot_speed
+  elseif love.keyboard.isDown('d') then
+    player.rot = player.rot - dt * player.rot_speed
+  end
+
+  if love.keyboard.isDown('w') then
+    player.rx = player.rx + dt * math.sin(player.rot) * player.speed
+    player.ry = player.ry + dt * math.cos(player.rot) * player.speed
+  elseif love.keyboard.isDown('s') then
+    player.rx = player.rx - dt * math.sin(player.rot) * player.speed
+    player.ry = player.ry - dt * math.cos(player.rot) * player.speed
   end
 
 end

@@ -30,14 +30,18 @@ function Line:vector()
 end
 
 function Line:unit_vector()
-  local x, y = self:vector()
+  local x, y = Line.vector(self)
   d = math.sqrt(x * x + y * y)
   return x / d, y / d
 end
 
 function Line:norm_vector()
-  local x, y = self:unit_vector()
+  local x, y = Line.unit_vector(self)
   return -y, x
+end
+
+function Line:fast_norm()
+  return -(self.by - self.ay), (self.bx - self.ax)
 end
 
 function Line:describe()
