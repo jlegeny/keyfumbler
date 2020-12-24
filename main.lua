@@ -13,6 +13,7 @@ local LevelRenderer = require 'renderer_level'
 local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
+local TabsRenderer = require 'renderer_tabs'
 
 Operation = {
   ADD_WALL = 1,
@@ -25,6 +26,7 @@ level_renderer = LevelRenderer()
 tools_renderer = ToolsRenderer()
 history_renderer = HistoryRenderer()
 info_renderer = InfoRenderer()
+tabs_renderer = TabsRenderer()
 
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 640
@@ -45,6 +47,8 @@ function restore(filename)
   e.redo_stack = {}
 end
 
+-- DRAW FUNCTIONS
+
 -- LOVE
 
 function love.load()
@@ -60,9 +64,12 @@ function love.load()
   love.graphics.setFont(font)
 
   level_renderer:setup(20, 20, 500, 500)
-  tools_renderer:setup(540, 20, 250, 500)
-  history_renderer:setup(540, 20, 250, 500)
-  info_renderer:setup(540, 20, 250, 500)
+
+  tabs_renderer:setup(540, 20, 320, 20)
+
+  tools_renderer:setup(540, 60, 320, 500)
+  history_renderer:setup(540, 60, 320, 500)
+  info_renderer:setup(540, 60, 320, 500)
 
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
@@ -76,7 +83,9 @@ end
 
 function love.keypressed(key, unicode)
   if e.state == State.IDLE or e.state == State.IC then
-    if key == '[' then
+    if key >= '1' and key <= '4' then
+      e.sidebar = key - '1' + 1
+    elseif key == '[' then
       e:undo(map)
     elseif key == ']' then
       e:redo(map)
@@ -120,6 +129,9 @@ function love.draw()
 
   level_renderer:draw_canvas()
   
+  tabs_renderer:draw_canvas()
+  tabs_renderer:draw(e)
+  love.graphics.setColor(1, 1, 1, 1)
   if e.sidebar == Sidebar.TOOLS then
     tools_renderer:draw_canvas()
   elseif e.sidebar == Sidebar.HISTORY then

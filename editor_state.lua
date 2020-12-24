@@ -6,10 +6,10 @@ State = {
 }
 
 Sidebar = {
-  ITEMS = 0,
-  TOOLS = 1,
-  HISTORY = 2,
-  INFO = 3,
+  ITEMS = 1,
+  TOOLS = 2,
+  HISTORY = 3,
+  INFO = 4,
 }
 
 local EditorState = {}
@@ -87,6 +87,6 @@ function EditorState:state_str()
 end
 
 return {
-  State = State, 
+  State = State,
   EditorState = EditorState,
 }
