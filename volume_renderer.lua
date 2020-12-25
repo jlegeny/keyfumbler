@@ -48,6 +48,8 @@ end
 function VolumeRenderer:draw(map, player)
   love.graphics.setCanvas(self.fpv)
   love.graphics.clear()
+  love.graphics.setBlendMode('replace')
+
 
   local eye_rx = player.rx + math.sin(player.rot)
   local eye_ry = player.ry + math.cos(player.rot)
@@ -55,11 +57,14 @@ function VolumeRenderer:draw(map, player)
   local eye_ux, eye_uy = eye:unit_vector()
   local eye_rnx, eye_rny = eye:norm_vector()
   
+  local ll = 0
+
+  love.graphics.setLineWidth(0)
+
   -- highlight colliding walls
   local res_v = self.width
   for theta = 0, res_v - 1 do
-    love.graphics.setColor(theta / res_v, 0, 0, 1)
-    local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
+    local angle = player.fov / 2 - theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
     local collisions = raycaster.collisions(map, ray)
     --for i, line in ipairs(collisions) do
@@ -68,17 +73,25 @@ function VolumeRenderer:draw(map, player)
     if #collisions > 0 then
       local cc = raycaster.closest_collision(collisions)
 
-      local height = 1 / (math.sin(math.pi / 2 - angle) * math.sqrt(cc.sqd)) * self.height
+      local scale = 1 / (math.sin(math.pi / 2 - angle) * math.sqrt(cc.sqd))
+      local height = scale * self.height
       -- local height = 1 / math.sqrt(cc.sqd) * self.height
 
-      -- love.graphics.line(theta, self.height / 2 - 10, theta, self.height / 2 + 10)
+      local step = math.sqrt(cc.sqd) / 4
+      local illumination = 0.0
+      local light = 2.2/step
+
+      local final = math.min(illumination + light, 1)
+      love.graphics.setColor(final, final, final, 1)
       love.graphics.line(theta, self.height / 2 - height / 2, theta, self.height / 2 + height / 2)
+      love.graphics.setColor(1, 1, 1, 1)
     end
   end
 
   -- set canvas back to original
   love.graphics.setCanvas()
-  love.graphics.draw(self.fpv, self.x, self.y)
+  love.graphics.setBlendMode('alpha')
+  love.graphics.draw(self.fpv, self.x + 0.5, self.y)
 end
 
 return VolumeRenderer

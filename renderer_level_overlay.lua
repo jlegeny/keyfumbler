@@ -59,6 +59,7 @@ function LevelOverlayRenderer:draw_canvas()
 end
 
 function LevelOverlayRenderer:draw(map, player)
+  love.graphics.setBlendMode('alpha')
   -- draw the player
   local player_cx, player_cy = self.lr:canvas_point(player.rx, player.ry)
   love.graphics.set_color('red')
@@ -73,6 +74,8 @@ function LevelOverlayRenderer:draw(map, player)
   local res_v
   if self.mode == 'fill' then
     res_v = 320
+  elseif self.mode == 'lines' then
+    res_v = 9
   else
     res_v = 5
   end
@@ -82,9 +85,9 @@ function LevelOverlayRenderer:draw(map, player)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
     local collisions = raycaster.collisions(map, ray)
     if #collisions > 0 then
-      local closest_collision = raycaster.closest_collision(collisions)
+      local cc = raycaster.closest_collision(collisions)
 
-      local ccx, ccy = self.lr:canvas_point(closest_collision.x, closest_collision.y)
+      local ccx, ccy = self.lr:canvas_point(cc.x, cc.y)
       love.graphics.line(player_cx, player_cy, ccx, ccy)
 
       if self.mode == 'line' or self.mode == 'distance' then
@@ -93,8 +96,13 @@ function LevelOverlayRenderer:draw(map, player)
       end
 
       if self.mode == 'distance' then
-        local dist = math.cos(angle) * math.sqrt(closest_collision.sqd)
+        local dist = math.cos(angle) * math.sqrt(cc.sqd)
         love.graphics.print(dist, ccx, ccy + theta * 16)
+
+        local step = math.floor(math.sqrt(cc.sqd) / 4)
+        local illumination = 0.5
+        local light = 1/step
+        love.graphics.print(light, ccx, ccy + theta * 16 + 14)
       end
     end
   end

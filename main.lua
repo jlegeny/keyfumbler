@@ -47,7 +47,7 @@ info_renderer = InfoRenderer()
 tabs_renderer = TabsRenderer()
 volume_renderer = VolumeRenderer()
 
-WINDOW_WIDTH = 960
+WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
 
 
@@ -76,25 +76,50 @@ function love.load()
 
   -- window
   love.window.setTitle("Engyne Edytor")
-  love.window.setMode(960, 640, {vsync = true})
+  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = true, resizable = true})
 
   -- fonts
-  font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 15)
+  font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 12)
   love.graphics.setFont(font)
 
-  level_renderer:setup(20, 20, 500, 500)
-
-  tabs_renderer:setup(540, 20, 320, 20)
-
-  tools_renderer:setup(540, 60, 320, 500)
-  history_renderer:setup(540, 60, 320, 500)
-  info_renderer:setup(540, 60, 320, 500)
-
-  volume_renderer:setup(540, 300, 320, 200)
+  setup(WINDOW_WIDTH, WINDOW_HEIGHT)
 
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
   end
+end
+
+function setup(w, h)
+  local pad = 20
+
+  local volume_w = 320
+  local volume_h = 240
+
+  local tabs_h = 20
+  local tabs_y = volume_h + 2 * pad
+
+  local sb_w = 320
+  local sb_y = volume_h + tabs_h + 2 * pad
+  local sb_x = w - sb_w - pad
+  local sb_h = h - volume_h - pad * 4
+
+  local level_w = w - sb_w - 3 * pad
+  local level_h = h - 2 * pad
+
+  level_renderer:setup(pad, pad, level_w, level_h)
+  volume_renderer:setup(sb_x, pad , volume_w, volume_h)
+
+  tabs_renderer:setup(sb_x, tabs_y, sb_w, tabs_h)
+
+  tools_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+  history_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+  info_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+
+
+end
+
+function love.resize(w, h)
+  setup(w, h)
 end
 
 function love.quit()
@@ -262,6 +287,14 @@ function love.draw()
     player.rot = player.rot + dt * player.rot_speed
   elseif love.keyboard.isDown('d') then
     player.rot = player.rot - dt * player.rot_speed
+  end
+
+  if player.rot > math.pi then
+    player.rot = player.rot - math.pi * 2
+  end
+
+  if player.rot < -math.pi then
+    player.rot = player.rot + math.pi * 2
   end
 
   if love.keyboard.isDown('w') then
