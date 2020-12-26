@@ -10,6 +10,7 @@ Sidebar = {
   TOOLS = 2,
   HISTORY = 3,
   INFO = 4,
+  DRAW = 5,
 }
 
 local EditorState = {}

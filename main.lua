@@ -95,13 +95,13 @@ function setup(w, h)
   local volume_w = 320
   local volume_h = 240
 
-  local tabs_h = 20
+  local tabs_h = 50
   local tabs_y = volume_h + 2 * pad
 
   local sb_w = 320
-  local sb_y = volume_h + tabs_h + 2 * pad
+  local sb_y = volume_h + tabs_h + 3 * pad
   local sb_x = w - sb_w - pad
-  local sb_h = h - volume_h - pad * 4
+  local sb_h = h - volume_h - tabs_h - pad * 4
 
   local level_w = w - sb_w - 3 * pad
   local level_h = h - 2 * pad
@@ -259,7 +259,7 @@ function love.draw()
     local mid_rx, mid_ry = e.wall_line_r:mid()
     local norm_rx, norm_ry = e.wall_line_r:norm_vector()
 
-    local dot = (rx - e.wall_line_r.ax) * norm_rx + (ry - e.wall_line_r.ay) * norm_ry
+    local dot = e.wall_line_r:point_dot(rx, ry)
     info_renderer:write('green', 'norm_x = {}, norm_y = {}', norm_rx, norm_ry)
     info_renderer:write('green', 'dot = {}', dot)
 

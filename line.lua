@@ -44,6 +44,11 @@ function Line:fast_norm()
   return -(self.by - self.ay), (self.bx - self.ax)
 end
 
+function Line:point_dot(px, py)
+  local nx, ny = Line.norm_vector(self)
+  return (px - self.ax) * nx + (py - self.ay) * ny
+end
+
 function Line:describe()
   print("AX", self.ax)
   print("AY", self.ay)

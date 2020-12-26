@@ -16,6 +16,8 @@ function TabsRenderer.new()
     '[2] Kbd',
     '[3] Hist',
     '[4] Info',
+    '[5] Draw',
+    '[6] ??',
   }
 
   self:setup(0, 0, 200, 200)
@@ -39,12 +41,14 @@ function TabsRenderer:pre_render_canvas()
 
   local tab_width = self.width / 4
 
-  for i = 0, 3 do 
+  for i, text in ipairs(self.tabs) do 
+    local c = (i - 1) % 4
+    local r = math.floor((i - 1) / 4)
     love.graphics.setColor(1, 1, 1, 0.4)
-    love.graphics.rectangle('fill', i * tab_width, 0, tab_width - 5, self.height)
+    love.graphics.rectangle('fill', c * tab_width, r * 30, tab_width - 5, 20)
     love.graphics.setColor(1, 1, 1, 0.8)
-    love.graphics.print(self.tabs[i + 1], i * tab_width, 0)
- end
+    love.graphics.print(text, c * tab_width, r * 30)
+  end
 
   -- set canvas back to original
   love.graphics.setCanvas()
@@ -57,7 +61,7 @@ end
 function TabsRenderer:draw(e)
   local tab_width = self.width / 4
   love.graphics.setColor(0, 1, 0.7, 1)
-  love.graphics.print(self.tabs[e.sidebar], self.x + (e.sidebar - 1) * tab_width, self.y)
+  love.graphics.print(self.tabs[e.sidebar], self.x + ((e.sidebar - 1) % 4) * tab_width, self.y + math.floor((e.sidebar - 1) / 4) * 30)
 end
 
 return TabsRenderer
