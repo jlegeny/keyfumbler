@@ -1,3 +1,5 @@
+local engyne = require 'engyne'
+
 local Line = require 'line'
 
 local LevelRenderer = {}
@@ -98,13 +100,24 @@ function LevelRenderer:draw(map, editor_state)
   for i, w in ipairs(map.walls) do
     local cline = self:canvas_line(w.line)
 
-    love.graphics.setColor(1, 1, 1, 0.8)
+    if editor_state.selection[w.id] ~= nil then
+      engyne.set_color('copper')
+    else
+      engyne.set_color('lightgrey', 8)
+    end
     love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
 
     local mid_cx, mid_cy = cline:mid()
 
-    love.graphics.setColor(0, 1, 1, 0.8)
+    engyne.set_color('moss')
     love.graphics.line(mid_cx, mid_cy, mid_cx + w.norm_x * 5, mid_cy + w.norm_y * 5)
+    engyne.set_small_font()
+    local label_x = mid_cx - w.norm_x * 5
+    if w.norm_x > 0 then
+      label_x = label_x - 10
+    end
+    love.graphics.print(w.id, label_x, mid_cy - w.norm_y * 5 - 5)
+    engyne.set_default_font()
   end
 end
 
@@ -119,6 +132,15 @@ function LevelRenderer:draw_line(rline)
   local cline = self:canvas_line(rline)
 
   love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
+end
+
+function LevelRenderer:draw_rectangle(rline)
+  local cline = self:canvas_line(rline)
+
+  love.graphics.line(cline.ax, cline.ay, cline.bx, cline.ay)
+  love.graphics.line(cline.bx, cline.ay, cline.bx, cline.by)
+  love.graphics.line(cline.bx, cline.by, cline.ax, cline.by)
+  love.graphics.line(cline.ax, cline.by, cline.ax, cline.ay)
 end
 
 return LevelRenderer

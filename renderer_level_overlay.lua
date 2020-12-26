@@ -1,3 +1,5 @@
+local engyne = require 'engyne'
+
 local Line = require 'line'
 local raycaster = require 'raycaster'
 
@@ -62,7 +64,7 @@ function LevelOverlayRenderer:draw(map, player)
   love.graphics.setBlendMode('alpha')
   -- draw the player
   local player_cx, player_cy = self.lr:canvas_point(player.rx, player.ry)
-  love.graphics.set_color('red')
+  engyne.set_color('red')
   love.graphics.circle('line', player_cx, player_cy, 2)
 
   local eye_cx = player_cx + math.sin(player.rot) * 10
@@ -80,6 +82,8 @@ function LevelOverlayRenderer:draw(map, player)
     res_v = 5
   end
 
+  local eye = Line(0, 0, math.sin(player.rot), math.cos(player.rot))
+
   for theta = 0, res_v - 1 do
     local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
@@ -96,7 +100,9 @@ function LevelOverlayRenderer:draw(map, player)
       end
 
       if self.mode == 'distance' then
-        local dist = math.cos(angle) * math.sqrt(cc.sqd)
+        -- local dist = math.cos(angle) * math.sqrt(cc.sqd)
+        -- local dist = Line.point_dot(ray, cc.x, cc.y)
+        local dist = (cc.x - player.rx) * eye.bx + (cc.y - player.ry) * eye.by
         love.graphics.print(dist, ccx, ccy + theta * 16)
 
         local step = math.floor(math.sqrt(cc.sqd) / 4)

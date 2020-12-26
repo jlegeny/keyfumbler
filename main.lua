@@ -1,3 +1,5 @@
+local engyne = require 'engyne'
+
 local bitser = require 'bitser'
 
 local lines = require 'lines'
@@ -19,16 +21,9 @@ local TabsRenderer = require 'renderer_tabs'
 local VolumeRenderer = require 'volume_renderer'
 
 
-love.graphics.set_color = function(color)
-  if color == 'grey' then
-    love.graphics.setColor(0.6, 0.6, 0.6, 1)
-  elseif color == 'red' then
-    love.graphics.setColor(1, 0.4, 0, 1)
-  end
-end
-
 Operation = {
   ADD_WALL = 1,
+  COMPLEX = 2,
 }
 
 e = EditorState()
@@ -66,6 +61,27 @@ function restore(filename)
   e.redo_stack = {}
 end
 
+function deepcopy(orig, copies)
+    copies = copies or {}
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        if copies[orig] then
+            copy = copies[orig]
+        else
+            copy = {}
+            copies[orig] = copy
+            for orig_key, orig_value in next, orig, nil do
+                copy[deepcopy(orig_key, copies)] = deepcopy(orig_value, copies)
+            end
+            setmetatable(copy, deepcopy(getmetatable(orig), copies))
+        end
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+
 -- DRAW FUNCTIONS
 
 -- LOVE
@@ -79,8 +95,7 @@ function love.load()
   love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = true, resizable = true})
 
   -- fonts
-  font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 12)
-  love.graphics.setFont(font)
+  engyne.set_default_font()
 
   setup(WINDOW_WIDTH, WINDOW_HEIGHT)
 
@@ -129,7 +144,7 @@ end
 
 function love.keypressed(key, unicode)
   if e.state == State.IDLE or e.state == State.IC then
-    if key >= '1' and key <= '4' then
+    if key >= '1' and key <= '6' then
       e.sidebar = key - '1' + 1
     elseif key == '[' then
       e:undo(map)
@@ -139,7 +154,17 @@ function love.keypressed(key, unicode)
       save('scratch.map')
     elseif key == 'f9' then
       restore('scratch.map')
-    elseif key == 'r' then
+    elseif key == 'backspace' then
+      local pre = deepcopy(map)
+      map:remove_objects_set(e.selection)
+      local post = deepcopy(map)
+      e:undoable({
+        op = Operation.COMPLEX,
+        description = "delete",
+        pre = pre,
+        post = post,
+      })
+     elseif key == 'r' then
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
@@ -160,6 +185,9 @@ function love.mousepressed(mx, my, button, istouch)
     if button == 1 then
       e.state = State.IC_DRAWING_WALL
       e.wall_line_r = Line(rx, ry, rx, ry)
+    elseif button == 2 then
+      e.state = State.IC_DRAWING_SELECTION
+      e.selection_line_r = Line(rx, ry, rx, ry)
     end
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
     if button == 1 then
@@ -225,6 +253,15 @@ function love.draw()
       end
     end
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_SELECTION then
+    if love.mouse.isDown(2) then
+      e.selection_line_r.bx = rx
+      e.selection_line_r.by = ry
+    else
+      e.state = State.IDLE
+      e.selection = map:bound_objects_set(e.selection_line_r)
+      e.sidebar = Sidebar.SELECTION
+    end
   end
   
   level_renderer:draw(map, e)
@@ -270,6 +307,11 @@ function love.draw()
     if dot < 0 then
       e.wall_line_r:swap()
     end
+  end
+
+  if e.state == State.IC_DRAWING_SELECTION then
+    engyne.set_color('moss')
+    level_renderer:draw_rectangle(e.selection_line_r)
   end
 
   info_renderer:write('grey', 'mx = {}, my = {}', mx, my)

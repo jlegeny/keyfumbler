@@ -17,7 +17,7 @@ function TabsRenderer.new()
     '[3] Hist',
     '[4] Info',
     '[5] Draw',
-    '[6] ??',
+    '[6] Sel',
   }
 
   self:setup(0, 0, 200, 200)

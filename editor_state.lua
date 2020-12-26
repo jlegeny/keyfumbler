@@ -3,6 +3,7 @@ State = {
   IC_IDLE = 100,
   IC_DRAWING_WALL = 101,
   IC_DRAWING_WALL_NORMAL = 102,
+  IC_DRAWING_SELECTION = 103,
 }
 
 Sidebar = {
@@ -11,6 +12,7 @@ Sidebar = {
   HISTORY = 3,
   INFO = 4,
   DRAW = 5,
+  SELECTION = 6,
 }
 
 local EditorState = {}
@@ -30,11 +32,14 @@ function EditorState.new()
   self.undo_stack = {}
   self.redo_stack = {}
 
+  self.selection = {}
+
   self.offset_x = 0
   self.offset_y = 0
 
   -- intermittent state
   self.wall_line_r = nil
+  self.selection_line_r = nil
 
   return self
 end
@@ -48,6 +53,8 @@ function EditorState:undo(map)
 
   if tail.op == Operation.ADD_WALL then
     map:remove_object(tail.obj.id, 'wall')
+  elseif tail.op == Operation.COMPLEX then
+    map:from(tail.pre)
   end
 end
 
@@ -59,6 +66,8 @@ function EditorState:redo(map)
   table.insert(e.undo_stack, tail)
   if tail.op == Operation.ADD_WALL then
     map:add_wall(tail.obj)
+  elseif tail.op == Operation.COMPLEX then
+    map:from(tail.post)
   end
 end
 
@@ -84,6 +93,8 @@ function EditorState:state_str()
     return "Drawing a Wall"
   elseif state == State.IC_DRAWING_WALL_NORMAL then
     return "Drawing a Wall's Normal"
+  elseif state == State.IC_DRAWING_SELECTION then
+    return "Drawing a selection"
   end
 end
 
