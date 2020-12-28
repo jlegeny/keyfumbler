@@ -1,5 +1,6 @@
 State = {
   IDLE = 0,
+  CONFIRM = 1,
   IC_IDLE = 100,
   IC_DRAWING_WALL = 101,
   IC_DRAWING_WALL_NORMAL = 102,
@@ -32,6 +33,7 @@ function EditorState.new()
   self.undo_stack = {}
   self.redo_stack = {}
 
+  self.confirmable = {}
   self.selection = {}
 
   self.offset_x = 0
@@ -87,6 +89,8 @@ function EditorState:state_str()
   local state_str = "Unknown"
   if state == State.IDLE then
     return "Idle"
+  elseif state == State.CONFIRM then
+    return "Confirm Action"
   elseif state == State.IC then
     return "In Canvas"
   elseif state == State.IC_DRAWING_WALL then

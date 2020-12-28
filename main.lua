@@ -164,17 +164,45 @@ function love.keypressed(key, unicode)
         pre = pre,
         post = post,
       })
-     elseif key == 'r' then
+    elseif key == 'r' then
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
     elseif key == 't' then
       level_overlay_renderer:toggle_mode()
+    elseif key == 'c' then
+      e.state = State.CONFIRM
+      e.confirmable = {
+        action = {
+          kind = 'clear',
+        },
+        message = 'Press [c] again to clear all',
+        key = 'c',
+      }
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
       e.state = State.IDLE
     end
+  elseif e.state == State.CONFIRM then
+    if key == e.confirmable.key then
+      execute_action(e.confirmable.action)
+    end
+    e.state = State.IDLE
+  end
+end
+
+function execute_action(action)
+  if action.kind == 'clear' then
+    local pre = deepcopy(map)
+    map = Map({ next_id = 1 })
+    local post = deepcopy(map)
+    e:undoable({
+      op = Operation.COMPLEX,
+      description = 'clear',
+      pre = pre,
+      post = post,
+    })
   end
 end
 
@@ -317,6 +345,11 @@ function love.draw()
   info_renderer:write('grey', 'mx = {}, my = {}', mx, my)
   info_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
   info_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
+
+  if e.state == State.CONFIRM then
+    engyne.set_color('red')
+    love.graphics.print(e.confirmable.message, 10, 10)
+  end
 
   if e.sidebar == Sidebar.INFO then
     info_renderer:draw()

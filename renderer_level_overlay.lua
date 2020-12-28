@@ -100,8 +100,6 @@ function LevelOverlayRenderer:draw(map, player)
       end
 
       if self.mode == 'distance' then
-        -- local dist = math.cos(angle) * math.sqrt(cc.sqd)
-        -- local dist = Line.point_dot(ray, cc.x, cc.y)
         local dist = (cc.x - player.rx) * eye.bx + (cc.y - player.ry) * eye.by
         love.graphics.print(dist, ccx, ccy + theta * 16)
 
