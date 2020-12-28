@@ -1,4 +1,5 @@
 local engyne = require 'engyne'
+local raycaster = require 'raycaster'
 
 local Line = require 'line'
 
@@ -15,6 +16,7 @@ function LevelRenderer.new()
   local self = {}
   setmetatable(self, LevelRenderer)
   self.zoom_factor = 9
+  self.mode = 'map'
 
   self:setup(0, 0, 200, 200)
 
@@ -29,6 +31,21 @@ function LevelRenderer:setup(x, y, width, height)
   self.canvas = love.graphics.newCanvas(self.width, self.height)
   self:pre_render_canvas()
 end
+
+function LevelRenderer.set_mode(mode)
+  self.mode = mode
+end
+
+function LevelRenderer:toggle_mode(mode)
+  if self.mode == 'map' then
+    self.mode = 'bsp'
+  elseif self.mode == 'bsp' then
+    self.mode = 'bsp+'
+  elseif self.mode == 'bsp+' then
+    self.mode = 'map'
+  end
+end
+
 
 function LevelRenderer:in_canvas(x, y)
   return x >= self.x and x <= self.x + self.width and y >= self.y and y <= self.y + self.height
@@ -95,7 +112,7 @@ function LevelRenderer:draw_canvas()
   love.graphics.draw(self.canvas, self.x, self.y)
 end
 
-function LevelRenderer:draw(map, editor_state)
+function LevelRenderer:draw_map(map, editor_state)
   -- draw all the walls
   for id, w in pairs(map.walls) do
     local cline = self:canvas_line(w.line)
@@ -121,6 +138,60 @@ function LevelRenderer:draw(map, editor_state)
   end
 end
 
+function LevelRenderer:draw_node(node, editor_state)
+  if node.is_leaf then
+    return
+  end
+
+  local cline = self:canvas_line(node.wall.line)
+  if editor_state.selection[node.ogid] ~= nil then
+    engyne.set_color('copper')
+  else
+    engyne.set_color('lightgrey', 8)
+  end
+  love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
+
+  local mid_cx, mid_cy = cline:mid()
+
+  engyne.set_color('moss')
+  love.graphics.line(mid_cx, mid_cy, mid_cx + node.wall.norm_x * 5, mid_cy + node.wall.norm_y * 5)
+   
+  self:draw_node(node.front, editor_state)
+  self:draw_node(node.back, editor_state)
+end
+
+function LevelRenderer:draw_bsp(map, editor_state)
+  self:draw_node(map.bsp, editor_state)
+end
+
+function LevelRenderer:draw_bsp_regions(map, editor_state)
+  local dots = {} 
+
+  local y = 0
+  while y < self.height / self.zoom_factor do
+    local x = 0
+    while x < self.width / self.zoom_factor do
+      local region_id = raycaster.get_region(map.bsp, x, y)
+  
+      local cx, cy = self:canvas_point(x, y)
+
+      if dots[region_id] == nil then
+        dots[region_id] = {}
+      end
+
+      table.insert(dots[region_id], cx)
+      table.insert(dots[region_id], cy)
+      x = x + 1
+    end
+    y = y + 1
+  end
+
+  for region_id, dts in pairs(dots) do 
+    engyne.hash_color(region_id)
+    love.graphics.points(dts)
+  end
+end
+
 function LevelRenderer:draw_cross(rx, ry)
   local cx, cy = self:canvas_point(rx, ry)
 
@@ -141,6 +212,17 @@ function LevelRenderer:draw_rectangle(rline)
   love.graphics.line(cline.bx, cline.ay, cline.bx, cline.by)
   love.graphics.line(cline.bx, cline.by, cline.ax, cline.by)
   love.graphics.line(cline.ax, cline.by, cline.ax, cline.ay)
+end
+
+function LevelRenderer:draw(map, editor_state)
+  if self.mode == 'map' then
+    self:draw_map(map, editor_state)
+  elseif self.mode == 'bsp' then
+    self:draw_bsp(map, editor_state)
+  elseif self.mode == 'bsp+' then
+    self:draw_bsp(map, editor_state)
+    self:draw_bsp_regions(map, editor_state)
+  end
 end
 
 return LevelRenderer

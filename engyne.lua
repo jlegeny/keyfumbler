@@ -32,6 +32,18 @@ engyne.set_color = function(color, intensity)
   end
 end
 
+engyne.hash_color = function(seed)
+  local a = 1103515245
+  local c = 12345
+  local m = 2 ^ 16
+
+  local red = (a * seed + c) % m;
+  local green = (a * red + c) % m;
+  local blue = (a * green + c) % m;
+
+  love.graphics.setColor((red / m), (green / m), (blue / m), 1)
+end
+
 engyne.util = {}
 
 engyne.util.make_set = function(t)

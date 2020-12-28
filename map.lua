@@ -1,5 +1,8 @@
+local lines = require 'lines'
 local Line = require 'line'
 local Wall = require 'wall'
+
+local EPSILON = 0.001
 
 local Map = {}
 Map.__index = Map
@@ -96,34 +99,58 @@ end
 getmetatable("").__mod = interp
 
 function place_in_bsp(node, ogid, wall, next_id)
-
-  if node.kind == 'leaf' then
-    local id = next_id()
-    return {
-      kind = 'node',
-      id = id,
+  if node.is_leaf then
+    local new_node = {
+      id = next_id(),
+      parent = node.parent,
       ogid = ogid,
       wall = Wall(wall.line), 
-      front = {
-        kind = 'leaf',
-        id = next_id(),
-      },
-      back = {
-        kind = 'leaf',
-        id = next_id()
-      }
     }
+    local front = {
+      is_leaf = true,
+      id = next_id(),
+      parent = new_node,
+    }
+    local back = {
+      is_leaf = true,
+      id = next_id(),
+      parent = new_node,
+    }
+    new_node.front = front
+    new_node.back = back
+    return new_node
   else
     local dota = Line.point_dot(node.wall.line, wall.line.ax, wall.line.ay)
-    local dotb = Line.point_dot(node.wall.line, wall.line.ay, wall.line.by)
-    if dota < 0 and dotb < 0 then
-      print('wall ${ogid} is back of ${nid} (${nogid})' % {ogid = ogid, nid = node.id, nogid = node.ogid})
+    local dotb = Line.point_dot(node.wall.line, wall.line.bx, wall.line.by)
+    print('inserting (${ax}, ${ay}, ${bx}, ${by})' % {
+      ax = wall.line.ax, ay = wall.line.ay, bx = wall.line.bx, by = wall.line.by,
+    })
+    print('comparing to (${ax}, ${ay}, ${bx}, ${by})' % {
+      ax = node.wall.line.ax, ay = node.wall.line.ay,
+      bx = node.wall.line.bx, by = node.wall.line.by,
+    })
+    print('dota ${dota} dotb ${dotb}' % {
+      dota = dota, dotb = dotb
+    })
+    if dota < EPSILON and dotb < EPSILON then
+      print('wall ${ogid} is back of ${nid} (${nogid})' % {
+        ogid = ogid, nid = node.id, nogid = node.ogid
+      })
       node.back = place_in_bsp(node.back, ogid, wall, next_id)
-    elseif dota > 0 and dotb > 0 then
-      print('wall ${ogid} is front of ${nid} (${nogid})' % {ogid = ogid, nid = node.id, nogid = node.ogid})
+    elseif dota > -EPSILON and dotb > -EPSILON then
+      print('wall ${ogid} is front of ${nid} (${nogid})' % {
+        ogid = ogid, nid = node.id, nogid = node.ogid
+      })
       node.front = place_in_bsp(node.front, ogid, wall, next_id)
     else
-      print('wall ' .. ogid .. ' needs to be split')
+      local sx, sy = lines.intersection(wall.line, node.wall.line)
+      print('wall ${ogid} needs to be split at ${x}, ${y}' % {
+        ogid = ogid,  x = sx, y = sy
+      })
+      local split1 = Line(wall.line.ax, wall.line.ay, sx, sy)
+      local split2 = Line(sx, sy, wall.line.bx, wall.line.by)
+      node = place_in_bsp(node, ogid, Wall(split1), next_id)
+      node = place_in_bsp(node, ogid, Wall(split2), next_id)
     end
     return node
   end
@@ -134,14 +161,20 @@ function print_bsp(node, depth)
   for i = 1, depth do
     str = str .. '  '
   end
-  if node.kind == 'node' then
-    str = str .. 'node ' .. node.id .. '  w: ' .. node.ogid
+  local parent_id
+  if node.parent == nil then
+    parent_id = 'nil'
+  else
+    parent_id = node.parent.id
+  end
+  if node.is_leaf then
+    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id
+    print(str)
+  else
+    str = str .. 'node ' .. node.id .. ' parent ' .. parent_id .. '  w: ' .. node.ogid
     print(str)
     print_bsp(node.front, depth + 1)
     print_bsp(node.back, depth + 1)
-  else
-    str = str .. 'leaf ' .. node.id
-    print(str)
   end
 end
 
@@ -155,7 +188,8 @@ function Map:update_bsp()
 
   self.bsp = {
     id = bsp_id,
-    kind = 'leaf',
+    is_leaf = true,
+    parent = nil,
   }
 
   for ogid, wall in pairs(self.walls) do

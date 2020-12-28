@@ -21,7 +21,8 @@ RayCaster.collisions = function(map, vector)
       table.insert(collisions, {
         x = int_x,
         y = int_y,
-        sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2
+        sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2,
+        id = id,
       })
     end
   end
@@ -40,6 +41,21 @@ RayCaster.closest_collision = function(collisions)
     end
   end
   return closest
+end
+
+RayCaster.get_region = function(bsp, rx, ry)
+  local node = bsp
+
+  while not node.is_leaf do
+    local dot = Line.point_dot(node.wall.line, rx, ry)
+    if dot <= 0 then
+      node = node.back
+    else
+      node = node.front
+    end
+  end
+
+  return node.id
 end
 
 return RayCaster

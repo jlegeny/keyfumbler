@@ -1,4 +1,5 @@
 local engyne = require 'engyne'
+local raycaster = require 'raycaster'
 
 local bitser = require 'bitser'
 
@@ -57,6 +58,7 @@ function restore(filename)
   local map_str = love.filesystem.newFileData(filename)
   map = bitser.loadData(map_str:getPointer(), map_str:getSize())
   setmetatable(map, Map)
+  map:update_bsp()
   e.undo_stack = {}
   e.redo_stack = {}
 end
@@ -170,6 +172,17 @@ function love.keypressed(key, unicode)
       love.event.quit(0)
     elseif key == 't' then
       level_overlay_renderer:toggle_mode()
+    elseif key == 'm' then
+      level_renderer:toggle_mode()
+    elseif key == 'b' then
+      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
+      local collisions = raycaster.collisions(map, ray)
+      if #collisions > 0 then
+        local cc = raycaster.closest_collision(collisions)
+        e.selection = {
+          [cc.id] = 'wall'
+        }
+      end
     elseif key == 'c' then
       e.state = State.CONFIRM
       e.confirmable = {
@@ -349,6 +362,10 @@ function love.draw()
   info_renderer:write('grey', 'mx = {}, my = {}', mx, my)
   info_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
   info_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
+
+  if e.state == State.IC then
+    info_renderer:write('grey', 'region = {}', raycaster.get_region(map.bsp, rx, ry))
+  end
 
   if e.state == State.CONFIRM then
     engyne.set_color('red')

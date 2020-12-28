@@ -85,6 +85,15 @@ function LevelOverlayRenderer:draw(map, player)
   local eye = Line(0, 0, math.sin(player.rot), math.cos(player.rot))
 
   for theta = 0, res_v - 1 do
+    
+    
+    if theta == math.floor(res_v/2) then
+      engyne.set_color('moss')
+    else
+      engyne.set_color('red')
+    end
+
+
     local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
     local collisions = raycaster.collisions(map, ray)

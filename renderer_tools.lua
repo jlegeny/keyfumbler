@@ -13,10 +13,13 @@ function ToolsRenderer.new()
 
   -- Tools
   self.keyboard_shortcuts = {
-    'q Quit       r Restart',
-    '[ Undo       ] Redo',
-    '+ Zoom In    - Zoom out',
-    't Toggle Overlay Mode', 
+    ' q Quit       r Restart',
+    ' [ Undo       ] Redo',
+    ' + Zoom In    - Zoom out',
+    ' t Toggle Overlay Mode', 
+    ' c Clear',
+    'F5 QSave     F9 QLoad',
+    ' b Beam Select',
   }
 
   self:setup(0, 0, 200, 200)
