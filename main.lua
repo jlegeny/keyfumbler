@@ -219,12 +219,16 @@ function love.mousepressed(mx, my, button, istouch)
     end
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
     if button == 1 then
-      local wall = Wall(map:get_id(), e.wall_line_r)
+      local id = map:get_id()
+      local wall = Wall(e.wall_line_r)
       e:undoable({
         op = Operation.ADD_WALL,
-        obj = wall
+        obj = {
+          id = id,
+          wall = wall
+        },
       })
-      map:add_wall(wall)
+      map:add_wall(id, wall)
       e.state = State.IDLE
       local cx, cy = level_renderer:canvas_point(e.wall_line_r.bx, e.wall_line_r.by)
       love.mouse.setPosition(cx, cy)

@@ -97,10 +97,10 @@ end
 
 function LevelRenderer:draw(map, editor_state)
   -- draw all the walls
-  for i, w in ipairs(map.walls) do
+  for id, w in pairs(map.walls) do
     local cline = self:canvas_line(w.line)
 
-    if editor_state.selection[w.id] ~= nil then
+    if editor_state.selection[id] ~= nil then
       engyne.set_color('copper')
     else
       engyne.set_color('lightgrey', 8)
@@ -116,7 +116,7 @@ function LevelRenderer:draw(map, editor_state)
     if w.norm_x > 0 then
       label_x = label_x - 10
     end
-    love.graphics.print(w.id, label_x, mid_cy - w.norm_y * 5 - 5)
+    love.graphics.print(id, label_x, mid_cy - w.norm_y * 5 - 5)
     engyne.set_default_font()
   end
 end

@@ -32,8 +32,13 @@ function Map.new(params)
   return self
 end
 
-function Map:add_wall(wall)
-  table.insert(self.walls, wall)
+function Map:from(other)
+  self.next_id = other.next_id
+  self.walls = other.walls
+end
+
+function Map:add_wall(id, wall)
+  self.walls[id] = wall
   self:update_bsp()
 end
 
@@ -53,8 +58,7 @@ function Map:remove_object(id, kind)
 
   for _, k in ipairs(kinds) do
     if kind == 'wall' then
-      local index = get_index_by_id(self.walls, id)
-      table.remove(self.walls, index)
+      self.walls[id] = nil
     end
   end
 
@@ -77,9 +81,9 @@ end
 
 function Map:bound_objects_set(rect)
   local objects = {}
-  for i, wall in ipairs(self.walls) do
+  for id, wall in pairs(self.walls) do
     if is_line_in(wall.line, rect) then
-      objects[wall.id] = 'wall'
+      objects[id] = 'wall'
     end
   end
   return objects

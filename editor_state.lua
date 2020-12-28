@@ -67,7 +67,7 @@ function EditorState:redo(map)
   local tail = table.remove(self.redo_stack, #self.redo_stack)
   table.insert(e.undo_stack, tail)
   if tail.op == Operation.ADD_WALL then
-    map:add_wall(tail.obj)
+    map:add_wall(tail.obj.id, tail.obj.wall)
   elseif tail.op == Operation.COMPLEX then
     map:from(tail.post)
   end

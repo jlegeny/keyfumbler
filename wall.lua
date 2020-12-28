@@ -7,10 +7,9 @@ setmetatable(Wall, {
   end,
 })
 
-function Wall.new(id, line)
+function Wall.new(line)
   local self = {}
   setmetatable(self, Wall)
-  self.id = id
   self.kind = 'wall'
   self.line = line
   self.norm_x, self.norm_y = line:norm_vector()
