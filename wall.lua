@@ -1,3 +1,5 @@
+local Line = require 'line'
+
 local Wall = {}
 Wall.__index = Wall
 
@@ -12,7 +14,7 @@ function Wall.new(line)
   setmetatable(self, Wall)
   self.kind = 'wall'
   self.line = line
-  self.norm_x, self.norm_y = line:norm_vector()
+  self.norm_x, self.norm_y = Line.norm_vector(line)
   self.mid_x = (line.ax + line.bx) / 2
   self.mid_y = (line.ay + line.by) / 2
   return self

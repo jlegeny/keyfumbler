@@ -15,7 +15,7 @@ end
 
 RayCaster.collisions = function(map, vector)
   local collisions = {}
-  for i, wall in ipairs(map.walls) do
+  for id, wall in pairs(map.walls) do
     if vector_intersects_line(vector, wall.line) then
       local int_x, int_y = lines.intersection(vector, wall.line)
       table.insert(collisions, {

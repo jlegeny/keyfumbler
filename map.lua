@@ -1,4 +1,5 @@
-local Line = require 'Line'
+local Line = require 'line'
+local Wall = require 'wall'
 
 local Map = {}
 Map.__index = Map
@@ -89,15 +90,20 @@ function Map:bound_objects_set(rect)
   return objects
 end
 
-function place_in_bsp(node, wall, next_id)
+function interp(s, tab)
+  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
+end
+getmetatable("").__mod = interp
+
+function place_in_bsp(node, ogid, wall, next_id)
 
   if node.kind == 'leaf' then
     local id = next_id()
     return {
       kind = 'node',
       id = id,
-      ogid = wall.id,
-      wall = Wall(id, wall.line), 
+      ogid = ogid,
+      wall = Wall(wall.line), 
       front = {
         kind = 'leaf',
         id = next_id(),
@@ -111,13 +117,13 @@ function place_in_bsp(node, wall, next_id)
     local dota = Line.point_dot(node.wall.line, wall.line.ax, wall.line.ay)
     local dotb = Line.point_dot(node.wall.line, wall.line.ay, wall.line.by)
     if dota < 0 and dotb < 0 then
-      print('wall ' .. wall.id .. ' is back of ' .. node.wall.id)
-      node.back = place_in_bsp(node.back, wall, next_id)
+      print('wall ${ogid} is back of ${nid} (${nogid})' % {ogid = ogid, nid = node.id, nogid = node.ogid})
+      node.back = place_in_bsp(node.back, ogid, wall, next_id)
     elseif dota > 0 and dotb > 0 then
-      print('wall ' .. wall.id .. ' is front of ' .. node.wall.id)
-      node.front = place_in_bsp(node.front, wall, next_id)
+      print('wall ${ogid} is front of ${nid} (${nogid})' % {ogid = ogid, nid = node.id, nogid = node.ogid})
+      node.front = place_in_bsp(node.front, ogid, wall, next_id)
     else
-      print('wall ' .. wall.id .. ' needs to be split')
+      print('wall ' .. ogid .. ' needs to be split')
     end
     return node
   end
@@ -129,7 +135,7 @@ function print_bsp(node, depth)
     str = str .. '  '
   end
   if node.kind == 'node' then
-    str = str .. 'node ' .. node.id .. '  w: ' .. node.wall.id
+    str = str .. 'node ' .. node.id .. '  w: ' .. node.ogid
     print(str)
     print_bsp(node.front, depth + 1)
     print_bsp(node.back, depth + 1)
@@ -152,14 +158,12 @@ function Map:update_bsp()
     kind = 'leaf',
   }
 
-  bsp_id = bsp_id + 1
-
-  for _, wall in pairs(self.walls) do
-    --self.bsp = place_in_bsp(self.bsp, wall, next_id)
+  for ogid, wall in pairs(self.walls) do
+    self.bsp = place_in_bsp(self.bsp, ogid, wall, next_id)
   end
-  --print('-- BSP --')
-  --print_bsp(self.bsp, 0)
-  --print()
+  print('-- BSP --')
+  print_bsp(self.bsp, 0)
+  print()
 
 end
 
