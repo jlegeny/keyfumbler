@@ -32,8 +32,8 @@ e = EditorState()
 
 map = Map({ next_id = 1 })
 player = Player()
-player.rx = 50
-player.ry = 5
+player.rx = 30
+player.ry = 30
 player.rot = -math.pi
 
 level_renderer = LevelRenderer()
@@ -109,7 +109,7 @@ function love.load()
 end
 
 function setup(w, h)
-  local pad = 20
+  local pad = 10
 
   local volume_w = 320
   local volume_h = 240
@@ -125,10 +125,10 @@ function setup(w, h)
   local sb_w = 320
   local sb_y = volume_h + tabs_h + 3 * pad
   local sb_x = w - sb_w - pad
-  local sb_h = h - volume_h - tabs_h - pad * 4
+  local sb_h = h - volume_h - tabs_h - bb_h - pad * 5
 
   local level_w = w - sb_w - 3 * pad
-  local level_h = h - bb_h - 4 * pad
+  local level_h = h - bb_h - 3 * pad
 
 
 
@@ -205,13 +205,28 @@ function love.keypressed(key, unicode)
       }
     elseif key == 'return' then
       local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
-      local start_node = raycaster.get_region_node(map.bsp, player.rx, player.ry)
-      local collisions = raycaster.fast_collisions(start_node, ray)
-      print('fast collisions')
-      for i, c in ipairs(collisions) do
-        print(c.id)
+      --local start_node = raycaster.get_region_node(map.bsp, player.rx, player.ry)
+      --local collisions = raycaster.fast_collisions(start_node, ray)
+      --print('fast collisions')
+      --for i, c in ipairs(collisions) do
+      --  print(c.id)
+      --end
+      local mx, my = love.mouse.getPosition()
+      local rx, ry = level_renderer:rel_point(mx, my)
+      local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry, false)
+      print('--- ordered nodes ---')
+      for i, node in pairs(nodes) do
+        if node.is_leaf then
+          print(i, node.id)
+        else
+          print(i, node.id, ' ', node.ogid, ' ', node.wall.line.ax, ' ', node.wall.line.bx)
+        end
       end
-    end
+      print('--- collisions ---')
+      for i, c in ipairs(raycaster.fast_collisions(map, ray)) do
+        print(i, c.id)
+      end
+     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
       e.state = State.IDLE
@@ -287,6 +302,8 @@ function love.draw()
     info_renderer:draw_canvas()
   end
 
+  statusbar_renderer:draw_canvas()
+
   local mx, my = love.mouse.getPosition()
   local rx, ry = level_renderer:rel_point(mx, my)
 
@@ -333,7 +350,6 @@ function love.draw()
 
   volume_renderer:draw(map, player)
 
-  info_renderer:write('green', e:state_str())
 
   -- draw the cursor
   if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL then
@@ -421,6 +437,8 @@ function love.draw()
     player.rx = player.rx - dt * math.sin(player.rot) * player.speed
     player.ry = player.ry - dt * math.cos(player.rot) * player.speed
   end
+
+  statusbar_renderer:draw(e)
 
 end
 

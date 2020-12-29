@@ -68,9 +68,9 @@ function VolumeRenderer:draw(map, player)
   for theta = 0, res_v - 1 do
     local angle = player.fov / 2 - theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
-    local collisions = raycaster.collisions(map, ray)
+    local collisions = raycaster.fast_collisions(map, ray)
     if #collisions > 0 then
-      local cc = raycaster.closest_collision(collisions)
+      local cc = collisions[1]
 
       local dist = (cc.x - player.rx) * eye_x + (cc.y - player.ry) * eye_y
       local scale = 1 / dist

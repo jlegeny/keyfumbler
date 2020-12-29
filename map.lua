@@ -192,7 +192,15 @@ function Map:update_bsp()
     parent = nil,
   }
 
-  for ogid, wall in pairs(self.walls) do
+  
+  local sorted_ids = {}
+  for k, _ in pairs(self.walls) do
+    table.insert(sorted_ids, k)
+  end
+  table.sort(sorted_ids)
+
+  for i, ogid in ipairs(sorted_ids) do
+    local wall = self.walls[ogid]
     self.bsp = place_in_bsp(self.bsp, ogid, wall, next_id)
   end
   print('-- BSP --')

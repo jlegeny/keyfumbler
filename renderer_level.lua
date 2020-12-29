@@ -157,7 +157,15 @@ function LevelRenderer:draw_node(node, editor_state)
 
   engyne.set_color('moss')
   love.graphics.line(mid_cx, mid_cy, mid_cx + node.wall.norm_x * 5, mid_cy + node.wall.norm_y * 5)
-   
+
+  engyne.set_small_font()
+  local label_x = mid_cx - node.wall.norm_x * 5
+  if node.wall.norm_x > 0 then
+    label_x = label_x - 10
+  end
+  love.graphics.print(node.id, label_x, mid_cy - node.wall.norm_y * 5 - 5)
+  engyne.set_default_font()
+ 
   self:draw_node(node.front, editor_state)
   self:draw_node(node.back, editor_state)
 end
@@ -197,7 +205,7 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
       end
       love.graphics.points(dts)
     elseif editor_state.highlight[region_id] ~= nil then
-      engyne.set_color('moss')
+      engyne.set_color('lightgrey', 0)
       love.graphics.points(dts)
     end
   end
@@ -231,6 +239,7 @@ function LevelRenderer:draw(map, editor_state)
     self:draw_map(map, editor_state)
   elseif self.mode == 'bsp' then
     self:draw_bsp(map, editor_state)
+    self:draw_bsp_regions(map, editor_state)
   elseif self.mode == 'bsp_r' then
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)

@@ -88,17 +88,17 @@ end
 
 function EditorState:state_str()
   local state_str = "Unknown"
-  if state == State.IDLE then
+  if self.state == State.IDLE then
     return "Idle"
-  elseif state == State.CONFIRM then
+  elseif self.state == State.CONFIRM then
     return "Confirm Action"
-  elseif state == State.IC then
+  elseif self.state == State.IC then
     return "In Canvas"
-  elseif state == State.IC_DRAWING_WALL then
+  elseif self.state == State.IC_DRAWING_WALL then
     return "Drawing a Wall"
-  elseif state == State.IC_DRAWING_WALL_NORMAL then
+  elseif self.state == State.IC_DRAWING_WALL_NORMAL then
     return "Drawing a Wall's Normal"
-  elseif state == State.IC_DRAWING_SELECTION then
+  elseif self.state == State.IC_DRAWING_SELECTION then
     return "Drawing a selection"
   end
 end

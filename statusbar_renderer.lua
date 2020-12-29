@@ -1,3 +1,5 @@
+local engyne = require 'engyne'
+
 local StatusBarRenderer = {}
 StatusBarRenderer.__index = StatusBarRenderer
 
@@ -30,15 +32,21 @@ function StatusBarRenderer:pre_render_canvas()
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
 
+  love.graphics.setColor(1, 1, 1, 0.4)
+  love.graphics.rectangle('fill', 0, 0, self.width, self.height)
+  
   -- set canvas back to original
   love.graphics.setCanvas()
 end
 
 function StatusBarRenderer:draw_canvas()
+  love.graphics.setColor(1, 1, 1, 1)
   love.graphics.draw(self.canvas, self.x, self.y)
 end
 
 function StatusBarRenderer:draw(editor_state)
+  engyne.set_color('moss')
+  love.graphics.print(e:state_str(), self.x, self.y)
 end
 
 return StatusBarRenderer
