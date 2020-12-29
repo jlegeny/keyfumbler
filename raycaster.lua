@@ -187,7 +187,7 @@ RayCaster.get_ordered_nodes = function(node, rx, ry, flip)
   local back = RayCaster.get_ordered_nodes(node.back, rx, ry)
 
   local ids = {}
-  if (not flip and dot < 0) or (flip and dot > 0) then
+  if dot > 0 then
     for i = 1, #front do
       table.insert(ids, front[i])
       --ids[#ids + i] = front[i]

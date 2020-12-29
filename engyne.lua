@@ -17,6 +17,10 @@ function get_color(min, max, intensity)
 end
 
 engyne.set_color = function(color, intensity)
+  if intensity == nil then
+    intensity = 0
+  end
+
   if color == 'copper' then
     love.graphics.setColor(0.9, 0.4, 0.1, 1)
   elseif color == 'lightgrey' then

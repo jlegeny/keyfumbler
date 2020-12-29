@@ -76,7 +76,11 @@ function Map:get_id()
 end
 
 function is_point_in(x, y, rect)
-  return x >= rect.ax and x <= rect.bx and y >= rect.ay and y <= rect.by
+  ax = math.min(rect.ax, rect.bx)
+  ay = math.min(rect.ay, rect.by)
+  bx = math.max(rect.ax, rect.bx)
+  by = math.max(rect.ay, rect.by)
+  return x >= ax and x <= bx and y >= ay and y <= by
 end
 
 function is_line_in(line, rect)

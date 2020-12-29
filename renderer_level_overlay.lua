@@ -98,31 +98,6 @@ function LevelOverlayRenderer:draw(map, player)
     local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
 
-    if false then
-      local collisions = raycaster.collisions(map, ray)
-      if #collisions > 0 then
-        local cc = raycaster.closest_collision(collisions)
-
-        local ccx, ccy = self.lr:canvas_point(cc.x, cc.y)
-        love.graphics.line(player_cx, player_cy, ccx, ccy)
-
-        if self.mode == 'line' or self.mode == 'distance' then
-          love.graphics.line(ccx - 4, ccy - 4, ccx + 4, ccy + 4)
-          love.graphics.line(ccx + 4, ccy - 4, ccx - 4, ccy + 4)
-        end
-
-        if self.mode == 'distance' then
-          local dist = (cc.x - player.rx) * eye.bx + (cc.y - player.ry) * eye.by
-          love.graphics.print(dist, ccx, ccy + theta * 16)
-
-          local step = math.floor(math.sqrt(cc.sqd) / 4)
-          local illumination = 0.5
-          local light = 1/step
-          love.graphics.print(light, ccx, ccy + theta * 16 + 14)
-        end
-      end
-    end
-
     local collisions = raycaster.fast_collisions(map, ray)
     if #collisions > 0 then
       local cc = collisions[1]

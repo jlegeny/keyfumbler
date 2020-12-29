@@ -7,6 +7,13 @@ State = {
   IC_DRAWING_SELECTION = 103,
 }
 
+Draw = {
+  WALL = 0,
+  LIGHT = 1,
+  SPLIT = 2,
+  ROOM = 3,
+}
+
 Sidebar = {
   ITEMS = 1,
   TOOLS = 2,
@@ -29,6 +36,7 @@ function EditorState.new()
   local self = {}
   setmetatable(self, EditorState)
   self.state = State.IDLE
+  self.draw = Draw.WALL
   self.sidebar = Sidebar.INFO
   self.undo_stack = {}
   self.redo_stack = {}

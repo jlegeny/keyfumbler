@@ -205,12 +205,6 @@ function love.keypressed(key, unicode)
       }
     elseif key == 'return' then
       local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
-      --local start_node = raycaster.get_region_node(map.bsp, player.rx, player.ry)
-      --local collisions = raycaster.fast_collisions(start_node, ray)
-      --print('fast collisions')
-      --for i, c in ipairs(collisions) do
-      --  print(c.id)
-      --end
       local mx, my = love.mouse.getPosition()
       local rx, ry = level_renderer:rel_point(mx, my)
       local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry, false)
@@ -302,6 +296,7 @@ function love.draw()
     info_renderer:draw_canvas()
   end
 
+  statusbar_renderer:reset()
   statusbar_renderer:draw_canvas()
 
   local mx, my = love.mouse.getPosition()
@@ -394,13 +389,13 @@ function love.draw()
     level_renderer:draw_rectangle(e.selection_line_r)
   end
 
-  info_renderer:write('grey', 'mx = {}, my = {}', mx, my)
-  info_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
-  info_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
+  statusbar_renderer:write('grey', 'mx = {}, my = {}', mx, my)
+  statusbar_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
+  statusbar_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
 
   if e.state == State.IC then
     local region_id = raycaster.get_region(map.bsp, rx, ry)
-    info_renderer:write('grey', 'region = {}', region_id)
+    statusbar_renderer:write('grey', 'region = {}', region_id)
     e.highlight = { [region_id] = true }
   end
 
@@ -438,7 +433,7 @@ function love.draw()
     player.ry = player.ry - dt * math.cos(player.rot) * player.speed
   end
 
-  statusbar_renderer:draw(e)
+  statusbar_renderer:draw(e, mx, my, rx, ry)
 
 end
 

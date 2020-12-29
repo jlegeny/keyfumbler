@@ -48,7 +48,7 @@ end
 function VolumeRenderer:draw(map, player)
   love.graphics.setCanvas(self.fpv)
   love.graphics.clear()
-  love.graphics.setBlendMode('replace')
+  love.graphics.setBlendMode('alpha')
 
 
   local eye_rx = player.rx + math.sin(player.rot)

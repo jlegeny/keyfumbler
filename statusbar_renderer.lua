@@ -3,6 +3,13 @@ local engyne = require 'engyne'
 local StatusBarRenderer = {}
 StatusBarRenderer.__index = StatusBarRenderer
 
+function interp(s, tab)
+  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
+end
+
+getmetatable("").__mod = interp
+
+
 setmetatable(StatusBarRenderer, {
   __call = function (cls, ...)
     return cls.new(...)
@@ -13,6 +20,7 @@ function StatusBarRenderer.new()
   local self = {}
   setmetatable(self, StatusBarRenderer)
 
+  self.blocks = {}
   self:setup(0, 0, 200, 200)
 
   return self
@@ -44,9 +52,37 @@ function StatusBarRenderer:draw_canvas()
   love.graphics.draw(self.canvas, self.x, self.y)
 end
 
+function StatusBarRenderer:reset()
+  self.blocks = {}
+end
+
+function StatusBarRenderer:write(color, template, ...)
+  local args = {...}
+
+  for i, v in ipairs(args) do
+    template = template:gsub('{}', v, 1)
+  end
+  table.insert(self.blocks, { color = color, text = template })
+end
+
+
 function StatusBarRenderer:draw(editor_state)
   engyne.set_color('moss')
   love.graphics.print(e:state_str(), self.x, self.y)
+
+  local color = 'lightgrey'
+  engyne.set_color(color)
+
+  local px = self.x + 200
+
+  for _, block in ipairs(self.blocks) do
+    if block.color ~= color then
+      engyne.set_color(color)
+      color = block.color
+    end
+    love.graphics.print(block.text, px, self.y)
+    px = px + string.len(block.text) * 10
+  end
 end
 
 return StatusBarRenderer
