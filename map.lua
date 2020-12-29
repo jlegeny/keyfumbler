@@ -122,31 +122,31 @@ function place_in_bsp(node, ogid, wall, next_id)
   else
     local dota = Line.point_dot(node.wall.line, wall.line.ax, wall.line.ay)
     local dotb = Line.point_dot(node.wall.line, wall.line.bx, wall.line.by)
-    print('inserting (${ax}, ${ay}, ${bx}, ${by})' % {
-      ax = wall.line.ax, ay = wall.line.ay, bx = wall.line.bx, by = wall.line.by,
-    })
-    print('comparing to (${ax}, ${ay}, ${bx}, ${by})' % {
-      ax = node.wall.line.ax, ay = node.wall.line.ay,
-      bx = node.wall.line.bx, by = node.wall.line.by,
-    })
-    print('dota ${dota} dotb ${dotb}' % {
-      dota = dota, dotb = dotb
-    })
+    --print('inserting (${ax}, ${ay}, ${bx}, ${by})' % {
+    --  ax = wall.line.ax, ay = wall.line.ay, bx = wall.line.bx, by = wall.line.by,
+    --})
+    --print('comparing to (${ax}, ${ay}, ${bx}, ${by})' % {
+    --  ax = node.wall.line.ax, ay = node.wall.line.ay,
+    --  bx = node.wall.line.bx, by = node.wall.line.by,
+    --})
+    --print('dota ${dota} dotb ${dotb}' % {
+    --  dota = dota, dotb = dotb
+    --})
     if dota < EPSILON and dotb < EPSILON then
-      print('wall ${ogid} is back of ${nid} (${nogid})' % {
-        ogid = ogid, nid = node.id, nogid = node.ogid
-      })
+      --print('wall ${ogid} is back of ${nid} (${nogid})' % {
+      --  ogid = ogid, nid = node.id, nogid = node.ogid
+      --})
       node.back = place_in_bsp(node.back, ogid, wall, next_id)
     elseif dota > -EPSILON and dotb > -EPSILON then
-      print('wall ${ogid} is front of ${nid} (${nogid})' % {
-        ogid = ogid, nid = node.id, nogid = node.ogid
-      })
+      --print('wall ${ogid} is front of ${nid} (${nogid})' % {
+      --  ogid = ogid, nid = node.id, nogid = node.ogid
+      --})
       node.front = place_in_bsp(node.front, ogid, wall, next_id)
     else
       local sx, sy = lines.intersection(wall.line, node.wall.line)
-      print('wall ${ogid} needs to be split at ${x}, ${y}' % {
-        ogid = ogid,  x = sx, y = sy
-      })
+      --print('wall ${ogid} needs to be split at ${x}, ${y}' % {
+      --  ogid = ogid,  x = sx, y = sy
+      --})
       local split1 = Line(wall.line.ax, wall.line.ay, sx, sy)
       local split2 = Line(sx, sy, wall.line.bx, wall.line.by)
       node = place_in_bsp(node, ogid, Wall(split1), next_id)

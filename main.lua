@@ -140,6 +140,7 @@ function love.resize(w, h)
 end
 
 function love.quit()
+  map.bsp = {}
   save('scratch.map')
   return false
 end
@@ -192,6 +193,14 @@ function love.keypressed(key, unicode)
         message = 'Press [c] again to clear all',
         key = 'c',
       }
+    elseif key == 'return' then
+      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
+      local start_node = raycaster.get_region_node(map.bsp, player.rx, player.ry)
+      local collisions = raycaster.fast_collisions(start_node, ray)
+      print('fast collisions')
+      for i, c in ipairs(collisions) do
+        print(c.id)
+      end
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
     if key == 'escape' then
@@ -364,7 +373,9 @@ function love.draw()
   info_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
 
   if e.state == State.IC then
-    info_renderer:write('grey', 'region = {}', raycaster.get_region(map.bsp, rx, ry))
+    local region_id = raycaster.get_region(map.bsp, rx, ry)
+    info_renderer:write('grey', 'region = {}', region_id)
+    e.highlight = { [region_id] = true }
   end
 
   if e.state == State.CONFIRM then

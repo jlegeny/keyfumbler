@@ -40,8 +40,8 @@ function LevelRenderer:toggle_mode(mode)
   if self.mode == 'map' then
     self.mode = 'bsp'
   elseif self.mode == 'bsp' then
-    self.mode = 'bsp+'
-  elseif self.mode == 'bsp+' then
+    self.mode = 'bsp_r'
+  elseif self.mode == 'bsp_r' then
     self.mode = 'map'
   end
 end
@@ -146,6 +146,8 @@ function LevelRenderer:draw_node(node, editor_state)
   local cline = self:canvas_line(node.wall.line)
   if editor_state.selection[node.ogid] ~= nil then
     engyne.set_color('copper')
+  elseif editor_state.highlight[node.id] ~= nil then
+    engyne.set_color('moss')
   else
     engyne.set_color('lightgrey', 8)
   end
@@ -181,14 +183,23 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
 
       table.insert(dots[region_id], cx)
       table.insert(dots[region_id], cy)
-      x = x + 1
+      x = x + 0.250
     end
-    y = y + 1
+    y = y + 0.250
   end
 
   for region_id, dts in pairs(dots) do 
-    engyne.hash_color(region_id)
-    love.graphics.points(dts)
+    if self.mode == 'bsp_r' then
+      if editor_state.highlight[region_id] ~= nil then
+        engyne.set_color('moss')
+      else
+        engyne.hash_color(region_id)
+      end
+      love.graphics.points(dts)
+    elseif editor_state.highlight[region_id] ~= nil then
+      engyne.set_color('moss')
+      love.graphics.points(dts)
+    end
   end
 end
 
@@ -219,7 +230,7 @@ function LevelRenderer:draw(map, editor_state)
     self:draw_map(map, editor_state)
   elseif self.mode == 'bsp' then
     self:draw_bsp(map, editor_state)
-  elseif self.mode == 'bsp+' then
+  elseif self.mode == 'bsp_r' then
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)
   end

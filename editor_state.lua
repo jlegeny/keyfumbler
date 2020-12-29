@@ -35,6 +35,7 @@ function EditorState.new()
 
   self.confirmable = {}
   self.selection = {}
+  self.highlight = {}
 
   self.offset_x = 0
   self.offset_y = 0
