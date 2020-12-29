@@ -19,6 +19,7 @@ local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
 local TabsRenderer = require 'renderer_tabs'
+local StatusBarRenderer = require 'statusbar_renderer'
 local VolumeRenderer = require 'volume_renderer'
 
 
@@ -42,6 +43,7 @@ history_renderer = HistoryRenderer()
 info_renderer = InfoRenderer()
 tabs_renderer = TabsRenderer()
 volume_renderer = VolumeRenderer()
+statusbar_renderer = StatusBarRenderer()
 
 WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
@@ -112,6 +114,11 @@ function setup(w, h)
   local volume_w = 320
   local volume_h = 240
 
+  local bb_w = w - pad * 2
+  local bb_h = 20
+  local bb_x = pad
+  local bb_y = h - bb_h - pad
+
   local tabs_h = 50
   local tabs_y = volume_h + 2 * pad
 
@@ -121,7 +128,9 @@ function setup(w, h)
   local sb_h = h - volume_h - tabs_h - pad * 4
 
   local level_w = w - sb_w - 3 * pad
-  local level_h = h - 2 * pad
+  local level_h = h - bb_h - 4 * pad
+
+
 
   level_renderer:setup(pad, pad, level_w, level_h)
   volume_renderer:setup(sb_x, pad , volume_w, volume_h)
@@ -132,6 +141,7 @@ function setup(w, h)
   history_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   info_renderer:setup(sb_x, sb_y, sb_w, sb_h)
 
+  statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
 end
 

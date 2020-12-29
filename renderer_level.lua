@@ -226,6 +226,7 @@ function LevelRenderer:draw_rectangle(rline)
 end
 
 function LevelRenderer:draw(map, editor_state)
+  love.graphics.setScissor(self.x, self.y, self.width, self.height)
   if self.mode == 'map' then
     self:draw_map(map, editor_state)
   elseif self.mode == 'bsp' then
@@ -234,6 +235,7 @@ function LevelRenderer:draw(map, editor_state)
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)
   end
+  love.graphics.setScissor()
 end
 
 return LevelRenderer

@@ -61,6 +61,7 @@ function LevelOverlayRenderer:draw_canvas()
 end
 
 function LevelOverlayRenderer:draw(map, player)
+  love.graphics.setScissor(self.lr.x, self.lr.y, self.lr.width, self.lr.height)
   love.graphics.setBlendMode('alpha')
   -- draw the player
   local player_cx, player_cy = self.lr:canvas_point(player.rx, player.ry)
@@ -119,6 +120,7 @@ function LevelOverlayRenderer:draw(map, player)
       end
     end
   end
+  love.graphics.setScissor()
 end
 
 return LevelOverlayRenderer
