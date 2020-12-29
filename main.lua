@@ -19,8 +19,8 @@ local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
 local TabsRenderer = require 'renderer_tabs'
-local StatusBarRenderer = require 'statusbar_renderer'
-local VolumeRenderer = require 'volume_renderer'
+local StatusBarRenderer = require 'renderer_statusbar'
+local VolumeRenderer = require 'renderer_volume'
 
 
 Operation = {
