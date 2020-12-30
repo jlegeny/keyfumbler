@@ -1,3 +1,4 @@
+local engyne = require 'engyne'
 local Line = require 'line'
 local raycaster = require 'raycaster'
 
@@ -34,7 +35,7 @@ function VolumeRenderer:pre_render_canvas()
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
 
-  love.graphics.setColor(1, 1, 1, 0.4)
+  engyne.set_color('darkgrey', 4)
   love.graphics.rectangle('line', 0, 0, self.width, self.height)
 
   -- set canvas back to original
@@ -81,9 +82,10 @@ function VolumeRenderer:draw(map, player)
       local light = 2.2/step
 
       local final = math.min(illumination + light, 1)
-      love.graphics.setColor(final, final, final, 1)
+      local color = math.floor(final * 31)
+      engyne.set_color('grey', color)
       love.graphics.line(theta, self.height / 2 - height / 2, theta, self.height / 2 + height / 2)
-      love.graphics.setColor(1, 1, 1, 1)
+      engyne.reset_color()
     end
   end
 

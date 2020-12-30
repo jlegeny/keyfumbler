@@ -7,6 +7,11 @@ State = {
   IC_DRAWING_SELECTION = 103,
 }
 
+EditorMode = {
+  SELECT = 0,
+  DRAW = 1,
+}
+
 Draw = {
   WALL = 0,
   LIGHT = 1,
@@ -36,6 +41,7 @@ function EditorState.new()
   local self = {}
   setmetatable(self, EditorState)
   self.state = State.IDLE
+  self.mode = EditorMode.SELECT
   self.draw = Draw.WALL
   self.sidebar = Sidebar.INFO
   self.undo_stack = {}
@@ -95,7 +101,6 @@ function EditorState:undoable(op, clean_redo_stack)
 end
 
 function EditorState:state_str()
-  local state_str = "Unknown"
   if self.state == State.IDLE then
     return "Idle"
   elseif self.state == State.CONFIRM then
@@ -103,11 +108,23 @@ function EditorState:state_str()
   elseif self.state == State.IC then
     return "In Canvas"
   elseif self.state == State.IC_DRAWING_WALL then
-    return "Drawing a Wall"
+    return "Drawing Wall"
   elseif self.state == State.IC_DRAWING_WALL_NORMAL then
-    return "Drawing a Wall's Normal"
+    return "Drawing Normal"
   elseif self.state == State.IC_DRAWING_SELECTION then
-    return "Drawing a selection"
+    return "Drawing Selection"
+  else
+    return "Unknown State"
+  end
+end
+
+function EditorState:mode_str()
+  if self.mode == EditorMode.SELECT then
+    return "Select"
+  elseif self.mode == EditorMode.DRAW then
+    return "Draw"
+  else
+    return "Unknown Mode"
   end
 end
 

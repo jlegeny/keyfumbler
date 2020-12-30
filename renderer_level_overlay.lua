@@ -65,7 +65,7 @@ function LevelOverlayRenderer:draw(map, player)
   love.graphics.setBlendMode('alpha')
   -- draw the player
   local player_cx, player_cy = self.lr:canvas_point(player.rx, player.ry)
-  engyne.set_color('red')
+  engyne.set_color('copper', 5)
   love.graphics.circle('line', player_cx, player_cy, 2)
 
   local eye_cx = player_cx + math.sin(player.rot) * 10
@@ -89,11 +89,10 @@ function LevelOverlayRenderer:draw(map, player)
     
     
     if theta == math.floor(res_v/2) then
-      engyne.set_color('moss')
+      engyne.set_color('copperoxyde')
     else
-      engyne.set_color('red')
+      engyne.set_color('copper', 3)
     end
-
 
     local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))

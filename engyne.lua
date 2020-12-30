@@ -1,9 +1,13 @@
+local palette = require 'palette'
+
 local engyne = {}
 
 local default_font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 12)
 local small_font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 8)
 
-local light_grey_min = {0.5, 0.5, 0.5}
+local dark_grey_min = {0.0625, 0.0625, 0.0625}
+local dark_grey_max = {0.5, 0.5, 0.5}
+local light_grey_min = {0.5625, 0.5625, 0.5625}
 local light_grey_max = {1, 1, 1}
 
 function get_color(min, max, intensity)
@@ -11,29 +15,34 @@ function get_color(min, max, intensity)
   local dg = max[2] - min[2]
   local db = max[3] - min[3]
 
-  local step = intensity / 8
+  local step = (intensity / 7) ^ 2.2
 
   return {min[1] + dr * step, min[2] + dg * step, min[3] + dg * step}
 end
 
 engyne.set_color = function(color, intensity)
   if intensity == nil then
-    intensity = 0
+    intensity = 4
   end
 
-  if color == 'copper' then
-    love.graphics.setColor(0.9, 0.4, 0.1, 1)
+  local c = {1, 0, 1}
+
+  if color == 'darkgrey' then
+    c = palette['grey'][intensity * 2 + 1]
   elseif color == 'lightgrey' then
-    local c = get_color(light_grey_min, light_grey_max, intensity)
-    love.graphics.setColor(c[1], c[2], c[3], 1)
-  elseif color == 'red' then
-    love.graphics.setColor(1, 0.4, 0, 1)
-  elseif color == 'moss' then
-    love.graphics.setColor(0.2, 1, 0.6, 1)
-  else
+    c = palette['grey'][intensity * 2 + 16]
+  elseif palette[color] == nil then
     print('Unknown color "', color, '"')
     love.event.quit(1)
+  else
+    c = palette[color][intensity]
   end
+
+  love.graphics.setColor(c[1], c[2], c[3], 1)
+end
+
+engyne.reset_color = function()
+  love.graphics.setColor(1, 1, 1, 1)
 end
 
 engyne.hash_color = function(seed)

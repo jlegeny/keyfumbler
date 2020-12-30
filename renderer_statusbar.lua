@@ -67,8 +67,11 @@ end
 
 
 function StatusBarRenderer:draw(editor_state)
-  engyne.set_color('moss')
-  love.graphics.print(e:state_str(), self.x, self.y)
+  engyne.set_color('copperoxyde')
+
+  local state = e:state_str() .. ' [' .. e:mode_str() .. ']'
+
+  love.graphics.print(state, self.x, self.y)
 
   local color = 'lightgrey'
   engyne.set_color(color)

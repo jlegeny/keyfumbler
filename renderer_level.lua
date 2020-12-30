@@ -118,15 +118,15 @@ function LevelRenderer:draw_map(map, editor_state)
     local cline = self:canvas_line(w.line)
 
     if editor_state.selection[id] ~= nil then
-      engyne.set_color('copper')
+      engyne.set_color('copper', 4)
     else
-      engyne.set_color('lightgrey', 8)
+      engyne.set_color('lightgrey', 6)
     end
     love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
 
     local mid_cx, mid_cy = cline:mid()
 
-    engyne.set_color('moss')
+    engyne.set_color('copperoxyde')
     love.graphics.line(mid_cx, mid_cy, mid_cx + w.norm_x * 5, mid_cy + w.norm_y * 5)
     engyne.set_small_font()
     local label_x = mid_cx - w.norm_x * 5
@@ -145,17 +145,17 @@ function LevelRenderer:draw_node(node, editor_state)
 
   local cline = self:canvas_line(node.wall.line)
   if editor_state.selection[node.ogid] ~= nil then
-    engyne.set_color('copper')
+    engyne.set_color('copper', 4)
   elseif editor_state.highlight[node.id] ~= nil then
-    engyne.set_color('moss')
+    engyne.set_color(editor_state.highlight[node.id])
   else
-    engyne.set_color('lightgrey', 8)
+    engyne.set_color('lightgrey', 7)
   end
   love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
 
   local mid_cx, mid_cy = cline:mid()
 
-  engyne.set_color('moss')
+  engyne.set_color('copperoxyde')
   love.graphics.line(mid_cx, mid_cy, mid_cx + node.wall.norm_x * 5, mid_cy + node.wall.norm_y * 5)
 
   engyne.set_small_font()
@@ -181,7 +181,7 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
   while y < self.height / self.zoom_factor do
     local x = 0
     while x < self.width / self.zoom_factor do
-      local region_id = raycaster.get_region(map.bsp, x, y)
+      local region_id = raycaster.get_region_id(map.bsp, x, y)
   
       local cx, cy = self:canvas_point(x, y)
 
@@ -199,13 +199,13 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
   for region_id, dts in pairs(dots) do 
     if self.mode == 'bsp_r' then
       if editor_state.highlight[region_id] ~= nil then
-        engyne.set_color('moss')
+        engyne.set_color(editor_state.highlight[region_id], 4)
       else
         engyne.hash_color(region_id)
       end
       love.graphics.points(dts)
     elseif editor_state.highlight[region_id] ~= nil then
-      engyne.set_color('lightgrey', 0)
+      engyne.set_color(editor_state.highlight[region_id], 4)
       love.graphics.points(dts)
     end
   end
@@ -244,7 +244,28 @@ function LevelRenderer:draw(map, editor_state)
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)
   end
+
+  local mode_str = self:mode_str()
+  local mode_x = self.x + self.width - 15 - string.len(mode_str) * 7
+  local mode_y = self.y + 5
+  engyne.set_color('darkgrey', 0)
+  love.graphics.rectangle('fill', mode_x, mode_y, string.len(mode_str) * 7 + 10, 20)
+  engyne.set_color('copper', 5)
+  love.graphics.print(mode_str, mode_x + 5, mode_y)
+
   love.graphics.setScissor()
 end
 
+function LevelRenderer:mode_str()
+  if self.mode == 'map' then
+    return 'Map'
+  end
+  if self.mode == 'bsp' then
+    return 'BSP'
+  end
+  if self.mode == 'bsp_r' then
+    return 'BSP Regions'
+  end
+  return 'Unknown'
+end
 return LevelRenderer

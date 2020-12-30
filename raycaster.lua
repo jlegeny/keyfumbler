@@ -145,7 +145,7 @@ RayCaster.get_region_node = function(bsp, rx, ry)
   return node
 end
 
-RayCaster.get_region = function(bsp, rx, ry)
+RayCaster.get_region_id = function(bsp, rx, ry)
   return RayCaster.get_region_node(bsp, rx, ry).id
 end
 

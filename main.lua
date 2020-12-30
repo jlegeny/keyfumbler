@@ -163,6 +163,10 @@ function love.keypressed(key, unicode)
       e:undo(map)
     elseif key == ']' then
       e:redo(map)
+    elseif key == 'f1' then
+      e.mode = EditorMode.SELECT
+    elseif key == 'f2' then
+      e.mode = EditorMode.DRAW
     elseif key == 'f5' then
       save('scratch.map')
     elseif key == 'f9' then
@@ -252,8 +256,10 @@ function love.mousepressed(mx, my, button, istouch)
 
   if e.state == State.IC then
     if button == 1 then
-      e.state = State.IC_DRAWING_WALL
-      e.wall_line_r = Line(rx, ry, rx, ry)
+      if e.mode == EditorMode.DRAW and e.draw == Draw.WALL then
+        e.state = State.IC_DRAWING_WALL
+        e.wall_line_r = Line(rx, ry, rx, ry)
+      end
     elseif button == 2 then
       e.state = State.IC_DRAWING_SELECTION
       e.selection_line_r = Line(rx, ry, rx, ry)
@@ -385,7 +391,7 @@ function love.draw()
   end
 
   if e.state == State.IC_DRAWING_SELECTION then
-    engyne.set_color('moss')
+    engyne.set_color('copperoxyde')
     level_renderer:draw_rectangle(e.selection_line_r)
   end
 
@@ -394,13 +400,18 @@ function love.draw()
   statusbar_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
 
   if e.state == State.IC then
-    local region_id = raycaster.get_region(map.bsp, rx, ry)
-    statusbar_renderer:write('grey', 'region = {}', region_id)
-    e.highlight = { [region_id] = true }
+    local region = raycaster.get_region_node(map.bsp, rx, ry)
+    statusbar_renderer:write('grey', 'region = {}', region.id)
+    e.highlight = { [region.id] = 'darkgrey' }
+    if e.mode == EditorMode.SELECT then
+      if region.parent ~= nil then
+        e.highlight[region.parent.id] = 'copperoxyde'
+      end
+    end
   end
 
   if e.state == State.CONFIRM then
-    engyne.set_color('red')
+    engyne.set_color('copper', 4)
     love.graphics.print(e.confirmable.message, 10, 10)
   end
 
