@@ -63,6 +63,7 @@ function VolumeRenderer:draw(map, player)
   love.graphics.setLineWidth(0)
 
   local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
+  local eye_px, eye_py = player.rx, player.ry
 
   -- highlight colliding walls
   local res_v = self.width
@@ -73,13 +74,14 @@ function VolumeRenderer:draw(map, player)
     if #collisions > 0 then
       local cc = collisions[1]
 
-      local dist = (cc.x - player.rx) * eye_x + (cc.y - player.ry) * eye_y
+
+      local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
       local scale = 1 / dist
       local height = scale * self.height
 
       local step = dist / 4
       local illumination = 0.0
-      local light = 2.2/step
+      local light = 1/step
 
       local final = math.min(illumination + light, 1)
       local color = math.floor(final * 31)

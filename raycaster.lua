@@ -88,18 +88,11 @@ function bsp_intersect(node, visited, prev, vector)
 end
 
 RayCaster.fast_collisions = function(map, vector)
-  local nodes = RayCaster.get_ordered_nodes(map.bsp, vector.ax, vector.ay, true)
+  local nodes = RayCaster.get_visible_ordered_nodes(map.bsp, vector.ax, vector.ay, vector.bx, vector.by)
 
-  --print('===', #nodes)
-
-  for i, node in ipairs(nodes) do
-    --print(i, node.id)
-  end
   local collisions = {}
   for i, node in ipairs(nodes) do
-    --print(i, node.id)
     if not node.is_leaf then
-      --print('cross?', node.ogid)
       if vector_intersects_line(vector, node.wall.line) then
         local int_x, int_y = lines.intersection(vector, node.wall.line)
         table.insert(collisions, {
@@ -109,8 +102,6 @@ RayCaster.fast_collisions = function(map, vector)
           id = node.ogid,
         })
       end
-    else
-      --print(node.id, 'is leaf')
     end
   end
 
@@ -161,10 +152,10 @@ RayCaster.get_subtree_ids = function(node)
     node.id
   }
   for i = 1, #front do
-    ids[#ids + i] = front[i]
+    table.insert(ids, front[i])
   end
   for i = 1, #back do
-    ids[#ids + i] = back[i]
+    table.insert(ids, back[i])
   end
 
   return ids
@@ -190,22 +181,62 @@ RayCaster.get_ordered_nodes = function(node, rx, ry, flip)
   if dot > 0 then
     for i = 1, #front do
       table.insert(ids, front[i])
-      --ids[#ids + i] = front[i]
     end
     table.insert(ids, node)
     for i = 1, #back do
-    table.insert(ids, back[i])
-     -- ids[#ids + i] = back[i]
+      table.insert(ids, back[i])
     end
   else
     for i = 1, #back do
       table.insert(ids, back[i])
-      --ids[#ids + i] = back[i]
     end
     table.insert(ids, node)
     for i = 1, #front do
-    table.insert(ids, front[i])
-     -- ids[#ids + i] = front[i]
+      table.insert(ids, front[i])
+    end
+  end
+
+  return ids
+end
+
+RayCaster.get_visible_ordered_nodes = function(node, rx, ry, vx, vy)
+  if node.is_leaf then
+    return {node}
+  end
+
+  local norm_x, norm_y = Line.fast_norm(node.wall.line)
+  local dot = (rx - node.wall.line.ax) * norm_x + (ry - node.wall.line.ay) * norm_y
+  local dotv = (vx - node.wall.line.ax) * norm_x + (vy - node.wall.line.ay) * norm_y
+
+  local front = {}
+  if dot > 0 or dotv > dot then
+    front = RayCaster.get_visible_ordered_nodes(node.front, rx, ry, vx, vy)
+  end
+  local back = {}
+  if dot < 0 or dotv < dot then
+    back = RayCaster.get_visible_ordered_nodes(node.back, rx, ry, vx, vy)
+  end
+
+  local ids = {}
+  if dot > 0 then
+    for i = 1, #front do
+      table.insert(ids, front[i])
+    end
+    if dot > dotv then
+      table.insert(ids, node)
+    end
+    for i = 1, #back do
+      table.insert(ids, back[i])
+    end
+  else
+    for i = 1, #back do
+      table.insert(ids, back[i])
+    end
+    if dot < dotv then
+      table.insert(ids, node)
+    end
+    for i = 1, #front do
+      table.insert(ids, front[i])
     end
   end
 

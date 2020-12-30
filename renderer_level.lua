@@ -144,10 +144,12 @@ function LevelRenderer:draw_node(node, editor_state)
   end
 
   local cline = self:canvas_line(node.wall.line)
+  local hl = editor_state.highlight[node.id] 
+
   if editor_state.selection[node.ogid] ~= nil then
     engyne.set_color('copper', 4)
-  elseif editor_state.highlight[node.id] ~= nil then
-    engyne.set_color(editor_state.highlight[node.id])
+  elseif hl ~= nil then
+    engyne.set_color(hl[1], hl[2])
   else
     engyne.set_color('lightgrey', 7)
   end
@@ -197,15 +199,16 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
   end
 
   for region_id, dts in pairs(dots) do 
+    local hl = editor_state.highlight[region_id]
     if self.mode == 'bsp_r' then
-      if editor_state.highlight[region_id] ~= nil then
-        engyne.set_color(editor_state.highlight[region_id], 4)
+      if hl ~= nil then
+        engyne.set_color(hl[1], hl[2])
       else
         engyne.hash_color(region_id)
       end
       love.graphics.points(dts)
-    elseif editor_state.highlight[region_id] ~= nil then
-      engyne.set_color(editor_state.highlight[region_id], 4)
+    elseif hl ~= nil then
+      engyne.set_color(hl[1], hl[2])
       love.graphics.points(dts)
     end
   end

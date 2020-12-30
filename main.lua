@@ -208,12 +208,23 @@ function love.keypressed(key, unicode)
         key = 'c',
       }
     elseif key == 'return' then
-      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
       local mx, my = love.mouse.getPosition()
       local rx, ry = level_renderer:rel_point(mx, my)
-      local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry, false)
       print('--- ordered nodes ---')
+      local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry)
       for i, node in pairs(nodes) do
+        if node.is_leaf then
+          print(i, node.id)
+        else
+          print(i, node.id, ' ', node.ogid, ' ', node.wall.line.ax, ' ', node.wall.line.bx)
+        end
+      end
+      print('--- ordered visible nodes ---')
+      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
+      local vnodes = raycaster.get_visible_ordered_nodes(map.bsp, ray.ax, ray.ay, ray.bx, ray.by)
+      e.highlight = {}
+      for i, node in pairs(vnodes) do
+        e.highlight[node.id] = { 'brass', 4 }
         if node.is_leaf then
           print(i, node.id)
         else
@@ -402,10 +413,18 @@ function love.draw()
   if e.state == State.IC then
     local region = raycaster.get_region_node(map.bsp, rx, ry)
     statusbar_renderer:write('grey', 'region = {}', region.id)
-    e.highlight = { [region.id] = 'darkgrey' }
+    e.highlight = { [region.id] = { 'darkgrey', 4 } }
     if e.mode == EditorMode.SELECT then
       if region.parent ~= nil then
-        e.highlight[region.parent.id] = 'copperoxyde'
+        local fronttree = raycaster.get_subtree_ids(region.parent.front)
+        for _, v in pairs(fronttree) do
+          e.highlight[v] = { 'copperoxyde', 3 }
+        end
+        local backtree = raycaster.get_subtree_ids(region.parent.back)
+        for _, v in pairs(backtree) do
+          e.highlight[v] = { 'copper', 3 }
+        end
+        e.highlight[region.parent.id] = { 'brass', 4 }
       end
     end
   end
