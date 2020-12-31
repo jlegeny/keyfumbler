@@ -1,14 +1,8 @@
+local util = require 'util'
 local engyne = require 'engyne'
 
 local StatusBarRenderer = {}
 StatusBarRenderer.__index = StatusBarRenderer
-
-function interp(s, tab)
-  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
-end
-
-getmetatable("").__mod = interp
-
 
 setmetatable(StatusBarRenderer, {
   __call = function (cls, ...)
@@ -70,6 +64,9 @@ function StatusBarRenderer:draw(editor_state)
   engyne.set_color('copperoxyde')
 
   local state = e:state_str() .. ' [' .. e:mode_str() .. ']'
+  if editor_state.mode == EditorMode.DRAW then
+    state = state .. ' [' .. e:draw_str() .. ']'
+  end
 
   love.graphics.print(state, self.x, self.y)
 

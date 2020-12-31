@@ -1,15 +1,19 @@
+local util = require 'util'
 local engyne = require 'engyne'
 local raycaster = require 'raycaster'
 
 local bitser = require 'bitser'
 
 local lines = require 'lines'
+
 local Line = require 'line'
 local Map = require 'map'
-local Wall = require 'wall'
 local Player = require 'player'
-local editor = require 'editor_state'
+local Room = require 'room'
+local Wall = require 'wall'
 
+local editor = require 'editor_state'
+local Draw = editor.Draw
 local State = editor.State
 local EditorState = editor.EditorState
 
@@ -18,6 +22,7 @@ local LevelOverlayRenderer = require 'renderer_level_overlay'
 local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
+local DrawInfoRenderer = require 'renderer_drawinfo'
 local TabsRenderer = require 'renderer_tabs'
 local StatusBarRenderer = require 'renderer_statusbar'
 local VolumeRenderer = require 'renderer_volume'
@@ -41,6 +46,7 @@ level_overlay_renderer = LevelOverlayRenderer(level_renderer)
 tools_renderer = ToolsRenderer()
 history_renderer = HistoryRenderer()
 info_renderer = InfoRenderer()
+drawinfo_renderer = DrawInfoRenderer()
 tabs_renderer = TabsRenderer()
 volume_renderer = VolumeRenderer()
 statusbar_renderer = StatusBarRenderer()
@@ -59,31 +65,11 @@ end
 function restore(filename)
   local map_str = love.filesystem.newFileData(filename)
   map = bitser.loadData(map_str:getPointer(), map_str:getSize())
+  Map.fix(map)
   setmetatable(map, Map)
   map:update_bsp()
   e.undo_stack = {}
   e.redo_stack = {}
-end
-
-function deepcopy(orig, copies)
-    copies = copies or {}
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        if copies[orig] then
-            copy = copies[orig]
-        else
-            copy = {}
-            copies[orig] = copy
-            for orig_key, orig_value in next, orig, nil do
-                copy[deepcopy(orig_key, copies)] = deepcopy(orig_value, copies)
-            end
-            setmetatable(copy, deepcopy(getmetatable(orig), copies))
-        end
-    else -- number, string, boolean, etc
-        copy = orig
-    end
-    return copy
 end
 
 -- DRAW FUNCTIONS
@@ -140,6 +126,7 @@ function setup(w, h)
   tools_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   history_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   info_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+  drawinfo_renderer:setup(sb_x, sb_y, sb_w, sb_h)
 
   statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
@@ -156,6 +143,7 @@ function love.quit()
 end
 
 function love.keypressed(key, unicode)
+  local shift = love.keyboard.isDown('lshift') or love.keyboard.isDown('rshift')
   if e.state == State.IDLE or e.state == State.IC then
     if key >= '1' and key <= '6' then
       e.sidebar = key - '1' + 1
@@ -165,31 +153,39 @@ function love.keypressed(key, unicode)
       e:redo(map)
     elseif key == 'f1' then
       e.mode = EditorMode.SELECT
+      e.sidebar = Sidebar.SELECTION
     elseif key == 'f2' then
-      e.mode = EditorMode.DRAW
+      if e.mode == EditorMode.DRAW then
+        e:toggle_draw()
+      else
+        e.mode = EditorMode.DRAW
+        e.sidebar = Sidebar.DRAW
+      end
     elseif key == 'f5' then
       save('scratch.map')
     elseif key == 'f9' then
       restore('scratch.map')
     elseif key == 'backspace' then
-      local pre = deepcopy(map)
+      local pre = util.deepcopy(map)
       map:remove_objects_set(e.selection)
-      local post = deepcopy(map)
+      local post = util.deepcopy(map)
       e:undoable({
         op = Operation.COMPLEX,
         description = "delete",
         pre = pre,
         post = post,
       })
-    elseif key == 'r' then
+    elseif key == 'r' or key == 'insert' or key == 'kpenter' then
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
-    elseif key == 't' then
-      level_overlay_renderer:toggle_mode()
-    elseif key == 'm' then
-      level_renderer:toggle_mode()
-    elseif key == 'b' then
+    elseif key == 'tab' then
+      if shift then
+        level_overlay_renderer:toggle_mode()
+      else
+        level_renderer:toggle_mode()
+      end
+    elseif key == 'space' then
       local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
       local collisions = raycaster.collisions(map, ray)
       if #collisions > 0 then
@@ -250,9 +246,9 @@ end
 
 function execute_action(action)
   if action.kind == 'clear' then
-    local pre = deepcopy(map)
+    local pre = util.deepcopy(map)
     map = Map({ next_id = 1 })
-    local post = deepcopy(map)
+    local post = util.deepcopy(map)
     e:undoable({
       op = Operation.COMPLEX,
       description = 'clear',
@@ -267,9 +263,18 @@ function love.mousepressed(mx, my, button, istouch)
 
   if e.state == State.IC then
     if button == 1 then
-      if e.mode == EditorMode.DRAW and e.draw == Draw.WALL then
-        e.state = State.IC_DRAWING_WALL
-        e.wall_line_r = Line(rx, ry, rx, ry)
+      if e.mode == EditorMode.DRAW then
+        if e.draw == Draw.WALL then
+          e.state = State.IC_DRAWING_WALL
+          e.wall_line_r = Line(rx, ry, rx, ry)
+        elseif e.draw == Draw.ROOM then
+          local objat = map:object_at(rx, ry)
+          if objat == nil then
+            local id = map:get_id()
+            local room = Room(rx, ry, 0, 1)
+            map:add_room(id, room)
+          end
+        end
       end
     elseif button == 2 then
       e.state = State.IC_DRAWING_SELECTION
@@ -311,6 +316,8 @@ function love.draw()
   elseif e.sidebar == Sidebar.INFO then
     info_renderer:reset()
     info_renderer:draw_canvas()
+  elseif e.sidebar == Sidebar.DRAW then
+    drawinfo_renderer:draw_canvas()
   end
 
   statusbar_renderer:reset()
@@ -436,6 +443,8 @@ function love.draw()
 
   if e.sidebar == Sidebar.INFO then
     info_renderer:draw()
+  elseif e.sidebar == Sidebar.DRAW then
+    drawinfo_renderer:draw(e)
   end
 
   local dt = love.timer.getDelta()

@@ -1,11 +1,7 @@
+local util = require 'util'
+
 local HistoryRenderer = {}
 HistoryRenderer.__index = HistoryRenderer
-
-function interp(s, tab)
-  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
-end
-
-getmetatable("").__mod = interp
 
 setmetatable(HistoryRenderer, {
   __call = function (cls, ...)

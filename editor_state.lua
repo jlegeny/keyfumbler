@@ -14,18 +14,18 @@ EditorMode = {
 
 Draw = {
   WALL = 0,
-  LIGHT = 1,
   SPLIT = 2,
   ROOM = 3,
+  LIGHT = 4,
 }
 
 Sidebar = {
-  ITEMS = 1,
-  TOOLS = 2,
-  HISTORY = 3,
-  INFO = 4,
-  DRAW = 5,
-  SELECTION = 6,
+  SELECTION = 1,
+  DRAW = 2,
+  ITEMS = 3,
+  TOOLS = 4,
+  HISTORY = 5,
+  INFO = 6,
 }
 
 local EditorState = {}
@@ -100,6 +100,14 @@ function EditorState:undoable(op, clean_redo_stack)
   end
 end
 
+function EditorState:toggle_draw()
+  if self.draw == Draw.WALL then
+    self.draw = Draw.ROOM
+  elseif self.draw == Draw.ROOM then
+    self.draw = Draw.WALL
+  end
+end
+
 function EditorState:state_str()
   if self.state == State.IDLE then
     return "Idle"
@@ -118,6 +126,18 @@ function EditorState:state_str()
   end
 end
 
+function EditorState:draw_str()
+  if self.draw == Draw.WALL then
+    return 'Wall'
+  elseif self.draw == Draw.ROOM then
+    return 'Room'
+  elseif self.draw == Draw.SPLIT then
+    return 'Split'
+  elseif self.draw == Draw.LIGHT then
+    return 'Light'
+  end
+end
+
 function EditorState:mode_str()
   if self.mode == EditorMode.SELECT then
     return "Select"
@@ -129,6 +149,7 @@ function EditorState:mode_str()
 end
 
 return {
+  Draw = Draw,
   State = State,
   EditorState = EditorState,
 }

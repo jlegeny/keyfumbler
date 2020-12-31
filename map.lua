@@ -1,3 +1,5 @@
+local util = require 'util'
+
 local lines = require 'lines'
 local Line = require 'line'
 local Wall = require 'wall'
@@ -31,18 +33,47 @@ function Map.new(params)
   setmetatable(self, Map)
   self.next_id = params.next_id
   self.walls = {}
+  self.rooms = {}
   self.bsp = {}
   self:update_bsp()
   return self
 end
 
+function Map:fix()
+  if self.walls == nil then
+    self.walls = {}
+  end
+  if self.rooms == nil then
+    self.rooms = {}
+  end
+end
+
 function Map:from(other)
   self.next_id = other.next_id
   self.walls = other.walls
+  self.rooms = other.rooms
 end
 
 function Map:add_wall(id, wall)
   self.walls[id] = wall
+  self:update_bsp()
+end
+
+function Map:object_at(x, y)
+  for id, r in pairs(self.rooms) do
+    if r.x == x and r.y == y then
+      return {
+        id = id,
+        obj = r,
+      }
+    end
+  end
+
+  return nil
+end
+
+function Map:add_room(id, room)
+  self.rooms[id] = room
   self:update_bsp()
 end
 
@@ -55,7 +86,7 @@ end
 function Map:remove_object(id, kind)
   local kinds
   if kind == nil then
-    kinds = { 'wall' }
+    kinds = { 'wall', 'room' }
   else
     kinds = { kind }
   end
@@ -63,6 +94,8 @@ function Map:remove_object(id, kind)
   for _, k in ipairs(kinds) do
     if kind == 'wall' then
       self.walls[id] = nil
+    elseif kind == 'room' then
+      self.rooms[id] = nil
     end
   end
 
@@ -94,15 +127,15 @@ function Map:bound_objects_set(rect)
       objects[id] = 'wall'
     end
   end
+  for id, room in pairs(self.rooms) do
+    if is_point_in(room.x, room.y, rect) then
+      objects[id] = 'room'
+    end
+  end
   return objects
 end
 
-function interp(s, tab)
-  return (s:gsub('($%b{})', function(w) return tab[w:sub(3, -2)] or w end))
-end
-getmetatable("").__mod = interp
-
-function place_in_bsp(node, ogid, wall, next_id)
+function place_wall_in_bsp(node, ogid, wall, next_id)
   if node.is_leaf then
     local new_node = {
       id = next_id(),
@@ -140,12 +173,12 @@ function place_in_bsp(node, ogid, wall, next_id)
       --print('wall ${ogid} is back of ${nid} (${nogid})' % {
       --  ogid = ogid, nid = node.id, nogid = node.ogid
       --})
-      node.back = place_in_bsp(node.back, ogid, wall, next_id)
+      node.back = place_wall_in_bsp(node.back, ogid, wall, next_id)
     elseif dota > -EPSILON and dotb > -EPSILON then
       --print('wall ${ogid} is front of ${nid} (${nogid})' % {
       --  ogid = ogid, nid = node.id, nogid = node.ogid
       --})
-      node.front = place_in_bsp(node.front, ogid, wall, next_id)
+      node.front = place_wall_in_bsp(node.front, ogid, wall, next_id)
     else
       local sx, sy = lines.intersection(wall.line, node.wall.line)
       --print('wall ${ogid} needs to be split at ${x}, ${y}' % {
@@ -153,11 +186,17 @@ function place_in_bsp(node, ogid, wall, next_id)
       --})
       local split1 = Line(wall.line.ax, wall.line.ay, sx, sy)
       local split2 = Line(sx, sy, wall.line.bx, wall.line.by)
-      node = place_in_bsp(node, ogid, Wall(split1), next_id)
-      node = place_in_bsp(node, ogid, Wall(split2), next_id)
+      node = place_wall_in_bsp(node, ogid, Wall(split1), next_id)
+      node = place_wall_in_bsp(node, ogid, Wall(split2), next_id)
     end
     return node
   end
+end
+
+function place_rooms_in_bsp(node, rooms)
+  if node.is_leaf then
+  end
+
 end
 
 function print_bsp(node, depth)
@@ -196,7 +235,6 @@ function Map:update_bsp()
     parent = nil,
   }
 
-  
   local sorted_ids = {}
   for k, _ in pairs(self.walls) do
     table.insert(sorted_ids, k)
@@ -205,7 +243,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local wall = self.walls[ogid]
-    self.bsp = place_in_bsp(self.bsp, ogid, wall, next_id)
+    self.bsp = place_wall_in_bsp(self.bsp, ogid, wall, next_id)
   end
   print('-- BSP --')
   print_bsp(self.bsp, 0)

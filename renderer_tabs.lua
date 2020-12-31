@@ -12,12 +12,12 @@ function TabsRenderer.new()
   setmetatable(self, TabsRenderer)
 
   self.tabs = {
-    '[1] Item',
-    '[2] Kbd',
-    '[3] Hist',
-    '[4] Info',
-    '[5] Draw',
-    '[6] Sel',
+    '[1] Sel',
+    '[2] Draw',
+    '[3] Item',
+    '[4] Kbd',
+    '[5] Hist',
+    '[6] Info',
   }
 
   self:setup(0, 0, 200, 200)

@@ -1,3 +1,5 @@
+local engyne = require 'engyne'
+
 local ToolsRenderer = {}
 ToolsRenderer.__index = ToolsRenderer
 
@@ -13,15 +15,15 @@ function ToolsRenderer.new()
 
   -- Tools
   self.keyboard_shortcuts = {
-    ' q Quit               r Restart',
-    ' [ Undo               ] Redo',
-    ' + Zoom In            - Zoom out',
-    ' t Toggle Overlay Mode', 
-    ' c Clear',
-    'F5 QSave             F9 QLoad',
-    ' b Beam Select',
-    ' m Map Mode',
-    'F1 Select            F2 Draw',
+    '   Q Quit               R Restart',
+    '   [ Undo               ] Redo',
+    '   + Zoom In            - Zoom out',
+    ' Tab Toggle Overlay Mode', 
+    '   c Clear',
+    '  F5 QSave             F9 QLoad',
+    '   b Beam Select',
+    'STab Map Mode',
+    '  F1 Select            F2 Draw',
   }
 
   self:setup(0, 0, 200, 200)
@@ -43,7 +45,7 @@ function ToolsRenderer:pre_render_canvas()
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
 
-  love.graphics.setColor(1, 1, 1, 0.4)
+  engyne.set_color('darkgrey', 6)
   love.graphics.rectangle('fill', 0, 0, self.width, self.height)
 
   love.graphics.setColor(1, 1, 1, 0.9)

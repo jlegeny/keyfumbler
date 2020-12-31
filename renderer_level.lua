@@ -3,6 +3,8 @@ local raycaster = require 'raycaster'
 
 local Line = require 'line'
 
+local hl_color = { 'copperoxyde', 7 }
+
 local LevelRenderer = {}
 LevelRenderer.__index = LevelRenderer
 
@@ -117,10 +119,9 @@ function LevelRenderer:draw_map(map, editor_state)
   for id, w in pairs(map.walls) do
     local cline = self:canvas_line(w.line)
 
+    engyne.set_color('lightgrey', 6)
     if editor_state.selection[id] ~= nil then
-      engyne.set_color('copper', 4)
-    else
-      engyne.set_color('lightgrey', 6)
+      engyne.set_color(unpack(hl_color))
     end
     love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
 
@@ -135,6 +136,15 @@ function LevelRenderer:draw_map(map, editor_state)
     end
     love.graphics.print(id, label_x, mid_cy - w.norm_y * 5 - 5)
     engyne.set_default_font()
+  end
+
+  for id, r in pairs(map.rooms) do
+    local cx, cy = self:canvas_point(r.x, r.y)
+    engyne.set_color('copper', 6)
+    if editor_state.selection[id] ~= nil then
+      engyne.set_color(unpack(hl_color))
+    end
+    love.graphics.circle('line', cx, cy, 3)
   end
 end
 
