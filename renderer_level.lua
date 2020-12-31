@@ -138,6 +138,28 @@ function LevelRenderer:draw_map(map, editor_state)
     engyne.set_default_font()
   end
 
+  for id, w in pairs(map.splits) do
+    local cline = self:canvas_line(w.line)
+
+    engyne.set_color('brass', 3)
+    if editor_state.selection[id] ~= nil then
+      engyne.set_color(unpack(hl_color))
+    end
+    love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
+
+    local mid_cx, mid_cy = cline:mid()
+
+    engyne.set_color('copperoxyde', 3)
+    engyne.set_small_font()
+    local label_x = mid_cx - w.norm_x * 5
+    if w.norm_x > 0 then
+      label_x = label_x - 10
+    end
+    love.graphics.print(id, label_x, mid_cy - w.norm_y * 5 - 5)
+    engyne.set_default_font()
+  end
+
+
   for id, r in pairs(map.rooms) do
     local cx, cy = self:canvas_point(r.x, r.y)
     engyne.set_color('copper', 6)
@@ -153,13 +175,15 @@ function LevelRenderer:draw_node(node, editor_state)
     return
   end
 
-  local cline = self:canvas_line(node.wall.line)
+  local cline = self:canvas_line(node.line)
   local hl = editor_state.highlight[node.id] 
 
   if editor_state.selection[node.ogid] ~= nil then
     engyne.set_color('copper', 4)
   elseif hl ~= nil then
     engyne.set_color(hl[1], hl[2])
+  elseif node.is_split then
+    engyne.set_color('brass', 3)
   else
     engyne.set_color('lightgrey', 7)
   end
@@ -168,14 +192,14 @@ function LevelRenderer:draw_node(node, editor_state)
   local mid_cx, mid_cy = cline:mid()
 
   engyne.set_color('copperoxyde')
-  love.graphics.line(mid_cx, mid_cy, mid_cx + node.wall.norm_x * 5, mid_cy + node.wall.norm_y * 5)
+  love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
 
   engyne.set_small_font()
-  local label_x = mid_cx - node.wall.norm_x * 5
-  if node.wall.norm_x > 0 then
+  local label_x = mid_cx - node.norm_x * 5
+  if node.norm_x > 0 then
     label_x = label_x - 10
   end
-  love.graphics.print(node.id, label_x, mid_cy - node.wall.norm_y * 5 - 5)
+  love.graphics.print(node.id, label_x, mid_cy - node.norm_y * 5 - 5)
   engyne.set_default_font()
  
   self:draw_node(node.front, editor_state)

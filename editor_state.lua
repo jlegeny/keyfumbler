@@ -5,11 +5,13 @@ State = {
   IC_DRAWING_WALL = 101,
   IC_DRAWING_WALL_NORMAL = 102,
   IC_DRAWING_SELECTION = 103,
+  IC_DRAWING_SPLIT = 104,
 }
 
 EditorMode = {
   SELECT = 0,
   DRAW = 1,
+  PROBE = 2,
 }
 
 Draw = {
@@ -17,6 +19,11 @@ Draw = {
   SPLIT = 2,
   ROOM = 3,
   LIGHT = 4,
+}
+
+Probe = {
+  REGION_PARENT_SUBTREE = 0,
+  REGION_ANCESTORS = 1,
 }
 
 Sidebar = {
@@ -43,6 +50,7 @@ function EditorState.new()
   self.state = State.IDLE
   self.mode = EditorMode.SELECT
   self.draw = Draw.WALL
+  self.probe = Probe.REGION_ANCESTORS
   self.sidebar = Sidebar.INFO
   self.undo_stack = {}
   self.redo_stack = {}
@@ -70,6 +78,8 @@ function EditorState:undo(map)
 
   if tail.op == Operation.ADD_WALL then
     map:remove_object(tail.obj.id, 'wall')
+  elseif tail.op == Operation.ADD_SPLIT then
+    map:remove_object(tail.obj.id, 'split')
   elseif tail.op == Operation.COMPLEX then
     map:from(tail.pre)
   end
@@ -83,6 +93,8 @@ function EditorState:redo(map)
   table.insert(e.undo_stack, tail)
   if tail.op == Operation.ADD_WALL then
     map:add_wall(tail.obj.id, tail.obj.wall)
+  elseif tail.op == Operation.ADD_SPLIT then
+    map:add_split(tail.obj.id, tail.obj.split)
   elseif tail.op == Operation.COMPLEX then
     map:from(tail.post)
   end
@@ -102,9 +114,19 @@ end
 
 function EditorState:toggle_draw()
   if self.draw == Draw.WALL then
+    self.draw = Draw.SPLIT
+  elseif self.draw == Draw.SPLIT then
     self.draw = Draw.ROOM
   elseif self.draw == Draw.ROOM then
     self.draw = Draw.WALL
+  end
+end
+
+function EditorState:toggle_probe()
+  if self.probe == Probe.REGION_ANCESTORS then
+    self.probe = Probe.REGION_PARENT_SUBTREE
+  elseif self.probe == Probe.REGION_PARENT_SUBTREE then
+    self.probe = Probe.REGION_ANCESTORS
   end
 end
 
@@ -121,6 +143,8 @@ function EditorState:state_str()
     return "Drawing Normal"
   elseif self.state == State.IC_DRAWING_SELECTION then
     return "Drawing Selection"
+  elseif self.state == State.IC_DRAWING_SPLIT then
+    return "Drawing Split"
   else
     return "Unknown State"
   end
@@ -138,8 +162,20 @@ function EditorState:draw_str()
   end
 end
 
+function EditorState:probe_str()
+  if self.probe == Probe.REGION_PARENT_SUBTREE then
+    return 'RPS'
+  elseif self.probe == Probe.REGION_ANCESTORS then
+    return 'RA'
+  else
+    return 'Unknown Probe'
+  end
+end
+
 function EditorState:mode_str()
-  if self.mode == EditorMode.SELECT then
+  if self.mode == EditorMode.PROBE then
+    return "Probe"
+  elseif self.mode == EditorMode.SELECT then
     return "Select"
   elseif self.mode == EditorMode.DRAW then
     return "Draw"
@@ -151,5 +187,6 @@ end
 return {
   Draw = Draw,
   State = State,
+  Probe = Probe,
   EditorState = EditorState,
 }

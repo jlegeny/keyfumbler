@@ -66,6 +66,8 @@ function StatusBarRenderer:draw(editor_state)
   local state = e:state_str() .. ' [' .. e:mode_str() .. ']'
   if editor_state.mode == EditorMode.DRAW then
     state = state .. ' [' .. e:draw_str() .. ']'
+  elseif editor_state.mode == EditorMode.PROBE then
+    state = state .. ' [' .. e:probe_str() .. ']'
   end
 
   love.graphics.print(state, self.x, self.y)

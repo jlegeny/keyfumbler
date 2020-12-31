@@ -10,11 +10,13 @@ local Line = require 'line'
 local Map = require 'map'
 local Player = require 'player'
 local Room = require 'room'
+local Split = require 'split'
 local Wall = require 'wall'
 
 local editor = require 'editor_state'
 local Draw = editor.Draw
 local State = editor.State
+local Probe = editor.Probe
 local EditorState = editor.EditorState
 
 local LevelRenderer = require 'renderer_level'
@@ -31,6 +33,7 @@ local VolumeRenderer = require 'renderer_volume'
 Operation = {
   ADD_WALL = 1,
   COMPLEX = 2,
+  ADD_SPLIT = 3,
 }
 
 e = EditorState()
@@ -161,6 +164,12 @@ function love.keypressed(key, unicode)
         e.mode = EditorMode.DRAW
         e.sidebar = Sidebar.DRAW
       end
+    elseif key == 'f3' then
+      if e.mode == EditorMode.PROBE then
+        e:toggle_probe()
+      else
+        e.mode = EditorMode.PROBE
+      end
     elseif key == 'f5' then
       save('scratch.map')
     elseif key == 'f9' then
@@ -212,7 +221,7 @@ function love.keypressed(key, unicode)
         if node.is_leaf then
           print(i, node.id)
         else
-          print(i, node.id, ' ', node.ogid, ' ', node.wall.line.ax, ' ', node.wall.line.bx)
+          print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
         end
       end
       print('--- ordered visible nodes ---')
@@ -224,7 +233,7 @@ function love.keypressed(key, unicode)
         if node.is_leaf then
           print(i, node.id)
         else
-          print(i, node.id, ' ', node.ogid, ' ', node.wall.line.ax, ' ', node.wall.line.bx)
+          print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
         end
       end
       print('--- collisions ---')
@@ -232,7 +241,8 @@ function love.keypressed(key, unicode)
         print(i, c.id)
       end
      end
-  elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
+    or e.state == State.IC_DRAWING_SPLIT then
     if key == 'escape' then
       e.state = State.IDLE
     end
@@ -274,6 +284,9 @@ function love.mousepressed(mx, my, button, istouch)
             local room = Room(rx, ry, 0, 1)
             map:add_room(id, room)
           end
+        elseif e.draw == Draw.SPLIT then
+          e.state = State.IC_DRAWING_SPLIT
+          e.wall_line_r = Line(rx, ry, rx, ry)
         end
       end
     elseif button == 2 then
@@ -362,6 +375,31 @@ function love.draw()
       e.selection = map:bound_objects_set(e.selection_line_r)
       e.sidebar = Sidebar.SELECTION
     end
+  elseif e.state == State.IC_DRAWING_SPLIT then
+    if love.mouse.isDown(1) then
+      e.wall_line_r.bx = rx
+      e.wall_line_r.by = ry
+    else
+      if is_in_canvas and (
+        e.wall_line_r.ax ~= e.wall_line_r.bx or e.wall_line_r.ay ~= e.wall_line_r.by)
+        then 
+          local id = map:get_id()
+          local split = Split(e.wall_line_r)
+          e:undoable({
+            op = Operation.ADD_SPLIT,
+            obj = {
+              id = id,
+              split = split
+            },
+          })
+          map:add_split(id, split)
+          e.state = State.IDLE
+          local cx, cy = level_renderer:canvas_point(e.wall_line_r.bx, e.wall_line_r.by)
+          love.mouse.setPosition(cx, cy)
+        end
+      e.state = State.IDLE
+    end
+  elseif e.state == State.IC_DRAWING_WALL_NORMAL then
   end
   
   level_renderer:draw(map, e)
@@ -380,7 +418,7 @@ function love.draw()
     level_renderer:draw_cross(rx, ry)
   end
 
-  if e.state == State.IC_DRAWING_WALL then
+  if e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_SPLIT then
     love.graphics.setColor(1, 0, 0, 1)
     level_renderer:draw_cross(e.wall_line_r.bx, e.wall_line_r.by)
     level_renderer:draw_line(e.wall_line_r)
@@ -421,17 +459,27 @@ function love.draw()
     local region = raycaster.get_region_node(map.bsp, rx, ry)
     statusbar_renderer:write('grey', 'region = {}', region.id)
     e.highlight = { [region.id] = { 'darkgrey', 4 } }
-    if e.mode == EditorMode.SELECT then
-      if region.parent ~= nil then
-        local fronttree = raycaster.get_subtree_ids(region.parent.front)
-        for _, v in pairs(fronttree) do
-          e.highlight[v] = { 'copperoxyde', 3 }
+    if e.mode == EditorMode.PROBE then
+      if e.probe == Probe.REGION_PARENT_SUBTREE then
+        if region.parent ~= nil then
+          local fronttree = raycaster.get_subtree_ids(region.parent.front)
+          for _, v in pairs(fronttree) do
+            e.highlight[v] = { 'copperoxyde', 3 }
+          end
+          local backtree = raycaster.get_subtree_ids(region.parent.back)
+          for _, v in pairs(backtree) do
+            e.highlight[v] = { 'copper', 3 }
+          end
+          e.highlight[region.parent.id] = { 'brass', 4 }
         end
-        local backtree = raycaster.get_subtree_ids(region.parent.back)
-        for _, v in pairs(backtree) do
-          e.highlight[v] = { 'copper', 3 }
+      elseif e.probe == Probe.REGION_ANCESTORS then
+        if region.parent ~= nil then
+          local frontleaves = raycaster.get_front_leave_ids(region.parent)
+          for _, v in pairs(frontleaves) do
+            e.highlight[v] = { 'copper', 3 }
+          end
+          e.highlight[region.id] = { 'brass', 4 }
         end
-        e.highlight[region.parent.id] = { 'brass', 4 }
       end
     end
   end

@@ -37,14 +37,14 @@ function bsp_intersect(node, visited, prev, vector)
   if not node.is_leaf then
     local norm_x, norm_y = Line.fast_norm(vector)
 
-    local dota = (node.wall.line.ax - vector.ax) * norm_x + (node.wall.line.ay - vector.ay) * norm_y
-    local dotb = (node.wall.line.bx - vector.ax) * norm_x + (node.wall.line.by - vector.ay) * norm_y
+    local dota = (node.line.ax - vector.ax) * norm_x + (node.line.ay - vector.ay) * norm_y
+    local dotb = (node.line.bx - vector.ax) * norm_x + (node.line.by - vector.ay) * norm_y
 
-    local norm_xl, norm_yl = Line.fast_norm(node.wall.line)
-    local dot = (vector.ax - node.wall.line.ax) * norm_xl + (vector.ay - node.wall.line.ay) * norm_yl
+    local norm_xl, norm_yl = Line.fast_norm(nodeline)
+    local dot = (vector.ax - node.line.ax) * norm_xl + (vector.ay - node.line.ay) * norm_yl
 
     if (dota < 0 and dotb > 0) and dot > 0 then
-      local int_x, int_y = lines.intersection(vector, node.wall.line)
+      local int_x, int_y = lines.intersection(vector, node.line)
       table.insert(prev, {
         x = int_x,
         y = int_y,
@@ -93,8 +93,9 @@ RayCaster.fast_collisions = function(map, vector)
   local collisions = {}
   for i, node in ipairs(nodes) do
     if not node.is_leaf then
-      if vector_intersects_line(vector, node.wall.line) then
-        local int_x, int_y = lines.intersection(vector, node.wall.line)
+      if vector_intersects_line(vector, node.line) or (
+        node.is_split and vector_intersects_line(vector, lines.swapped(node.line))) then
+        local int_x, int_y = lines.intersection(vector, node.line)
         table.insert(collisions, {
           x = int_x,
           y = int_y,
@@ -125,7 +126,7 @@ RayCaster.get_region_node = function(bsp, rx, ry)
   local node = bsp
 
   while not node.is_leaf do
-    local dot = Line.point_dot(node.wall.line, rx, ry)
+    local dot = Line.point_dot(node.line, rx, ry)
     if dot <= 0 then
       node = node.back
     else
@@ -170,8 +171,8 @@ RayCaster.get_ordered_nodes = function(node, rx, ry, flip)
     return {node}
   end
 
-  local norm_x, norm_y = Line.fast_norm(node.wall.line)
-  local dot = (rx - node.wall.line.ax) * norm_x + (ry - node.wall.line.ay) * norm_y
+  local norm_x, norm_y = Line.fast_norm(node.line)
+  local dot = (rx - node.line.ax) * norm_x + (ry - node.line.ay) * norm_y
  
   local front = RayCaster.get_ordered_nodes(node.front, rx, ry)
 
@@ -204,9 +205,9 @@ RayCaster.get_visible_ordered_nodes = function(node, rx, ry, vx, vy)
     return {node}
   end
 
-  local norm_x, norm_y = Line.fast_norm(node.wall.line)
-  local dot = (rx - node.wall.line.ax) * norm_x + (ry - node.wall.line.ay) * norm_y
-  local dotv = (vx - node.wall.line.ax) * norm_x + (vy - node.wall.line.ay) * norm_y
+  local norm_x, norm_y = Line.fast_norm(node.line)
+  local dot = (rx - node.line.ax) * norm_x + (ry - node.line.ay) * norm_y
+  local dotv = (vx - node.line.ax) * norm_x + (vy - node.line.ay) * norm_y
 
   local front = {}
   if dot > 0 or dotv > dot then
@@ -243,5 +244,46 @@ RayCaster.get_visible_ordered_nodes = function(node, rx, ry, vx, vy)
   return ids
 end
 
+RayCaster.get_front_leave_ids = function(node, visited)
+  if visited == nil then
+    visited = {}
+  end
+
+  visited[node.id] = true
+
+  if node.is_leaf then
+    return {}
+  end
+  
+  local ids = {}
+  if visited[node.front.id] == nil then
+    if node.front.is_leaf then
+      table.insert(ids, node.front.id)
+    else
+      local front = RayCaster.get_front_leave_ids(node.front, visited)
+      for i = 1, #front do
+        table.insert(ids, front[i])
+      end
+    end
+  end
+  
+  --if visited[node.back.id] == nil then
+    --if not node.back.is_leaf then
+      --local back = RayCaster.get_front_leave_ids(node.back, visited)
+      --for i = 1, #back do
+        --table.insert(ids, back[i])
+      --end
+    --end
+  --end
+
+  if node.parent ~= nil then
+    local parent = RayCaster.get_front_leave_ids(node.parent, visited)
+    for i = 1, #parent do
+      table.insert(ids, parent[i])
+    end
+  end
+ 
+  return ids
+end
 
 return RayCaster

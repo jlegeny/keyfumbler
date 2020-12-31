@@ -1,3 +1,5 @@
+local Line = require 'line'
+
 local lines = {}
 
 lines.parallel = function (lhs, rhs)
@@ -22,6 +24,10 @@ lines.intersection = function (lhs, rhs)
   local y = (b * lvy - a * rvy) / d
 
   return x, y
+end
+
+lines.swapped = function(line)
+  return Line(line.bx, line.by, line.ax, line.ay)
 end
 
 lines.__index = lines

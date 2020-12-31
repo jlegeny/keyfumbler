@@ -74,7 +74,6 @@ function VolumeRenderer:draw(map, player)
     if #collisions > 0 then
       local cc = collisions[1]
 
-
       local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
       local scale = 1 / dist
       local height = scale * self.height
