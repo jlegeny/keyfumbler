@@ -206,6 +206,12 @@ function love.keypressed(key, unicode)
           [cc.id] = 'wall'
         }
       end
+    elseif key == '=' and shift then
+      level_renderer:zoom_in()
+    elseif key == '-' then
+      level_renderer:zoom_out()
+    elseif key == '0' then
+      level_renderer:zoom_reset()
     elseif key == 'delete' then
       e.state = State.CONFIRM
       e.confirmable = {
@@ -246,18 +252,26 @@ function love.keypressed(key, unicode)
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
+      else
+        level_renderer:pan(0, 10)
       end
     elseif key == 'up' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:prev_stat()
+      else
+        level_renderer:pan(0, -10)
       end
     elseif key == 'left' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:dec_stat()
+      else
+        level_renderer:pan(-10, 0)
       end
     elseif key == 'right' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:inc_stat()
+      else
+        level_renderer:pan(10, 0)
       end
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
@@ -440,7 +454,8 @@ function love.draw()
   if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL then
     love.mouse.setVisible(true)
   elseif e.state == State.IC or e.state == State.IC_DRAWING_WALL then
-    love.mouse.setVisible(false)
+
+    --love.mouse.setVisible(false)
 
     love.graphics.setColor(1, 1, 0, 1)
     level_renderer:draw_cross(rx, ry)

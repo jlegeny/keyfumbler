@@ -59,9 +59,6 @@ function EditorState.new()
   self.selection = {}
   self.highlight = {}
 
-  self.offset_x = 0
-  self.offset_y = 0
-
   -- intermittent state
   self.wall_line_r = nil
   self.selection_line_r = nil

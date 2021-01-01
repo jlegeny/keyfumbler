@@ -97,7 +97,7 @@ RayCaster.fast_collisions = function(map, vector)
         node.is_split and vector_intersects_line(vector, lines.swapped(node.line))) then
         local int_x, int_y = lines.intersection(vector, node.line)
         -- find room in front
-        local dx, dy = (vector.bx - vector.ax) / 10, (vector.by - vector.ay) / 10
+        local dx, dy = (vector.bx - vector.ax) / 100, (vector.by - vector.ay) / 100
         local hx, hy = int_x - dx, int_y - dy
         local room = RayCaster.get_region_node(map.bsp, hx, hy)
         local room_id

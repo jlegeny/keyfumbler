@@ -17,6 +17,7 @@ function LevelOverlayRenderer.new(level_renderer)
   setmetatable(self, LevelOverlayRenderer)
 
   self.lr = level_renderer
+  self.lr.overlay = self
   self:setup()
 
   self.mode = 'lines'
