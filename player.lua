@@ -18,6 +18,7 @@ function Player.new()
   self.rot = 0
   self.z = 0
   self.h = 1
+  self.chin = 0
 
   self.speed = 5
   self.rot_speed = math.pi

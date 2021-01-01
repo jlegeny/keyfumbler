@@ -51,6 +51,7 @@ function make_palette()
     local cpal = {}
     for i, c in pairs(colors) do
       cpal[i] = { c[1] / 255, c[2] / 255, c[3] / 255 }
+      print(name, i, c[1], c[2], c[3])
     end
     pal[name] = cpal
   end

@@ -48,6 +48,8 @@ end
 
 function VolumeRenderer:draw(map, player)
   love.graphics.setCanvas(self.fpv)
+
+  engyne.reset_color()
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
 
@@ -63,13 +65,19 @@ function VolumeRenderer:draw(map, player)
   love.graphics.setLineWidth(0)
 
   local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
-  local eye_px, eye_py = player.rx, player.ry
+  local eye_px, eye_py = player.rx + player.chin * eye_x, player.ry + player.chin * eye_y
 
   -- highlight colliding walls
   local res_v = self.width
-  for theta = 0, res_v - 1 do
-    local angle = player.fov / 2 - theta * player.fov / (res_v - 1)
-    local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
+
+  local minx, miny = math.sin(player.rot + player.fov / 2), math.cos(player.rot + player.fov / 2)
+  local maxx, maxy = math.sin(player.rot - player.fov / 2), math.cos(player.rot - player.fov / 2)
+  local dx, dy = (maxx - minx) / res_v, (maxy - miny) / res_v
+
+  for theta = 0, res_v - 1  do
+    local linex = theta + 0.5
+    local liney = 0.5
+    local ray = Line(player.rx, player.ry, player.rx + minx + dx * theta, player.ry + miny + dy * theta)
     local collisions = raycaster.fast_collisions(map, ray)
     local top
     local bottom
@@ -79,39 +87,51 @@ function VolumeRenderer:draw(map, player)
       local cc = collisions[i]
       local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
       local scale = 1 / dist
-      local step = dist / 2
       local illumination = 0.0
-      local light = 1/step
+      local light = 1 / (math.sqrt(dist / 2))
 
       local final = math.min(illumination + light, 1)
       local color = math.floor(final * 31)
  
-      if cc.is_split then
-        if cc.floor_height and prev_floor_height and cc.floor_height < prev_floor_height then
-          local rheight = scale * (cc.floor_height - prev_floor_height)
+      color = math.min(math.max(color, 0), 31)
 
-          engyne.set_color('grey', color)
-        
-          local rbottom = scale * (player.h + player.z - prev_floor_height)
-          local rtop = rbottom - rheight
+      if cc.is_split then
+        if cc.floor_height and prev_floor_height then
+          local rheight = scale * (cc.floor_height - prev_floor_height)
+          local rtop = scale * (player.h + player.z - prev_floor_height)
+          local rbottom = rtop - rheight
 
           local top = self.height * (rtop + 1) / 2
           local bottom = self.height * (rbottom + 1) / 2
-          love.graphics.line(theta, top, theta, bottom)
-        end
-        if cc.ceiling_height and prev_ceiling_height and cc.ceiling_height > prev_ceiling_height then
-          local rheight = scale * (prev_ceiling_height - cc.ceiling_height)
+          if  cc.floor_height < prev_floor_height then
+            engyne.reset_color()
+            engyne.set_color('grey', color)
+            love.graphics.line(linex, top, linex, bottom)
+          else
+            local overhang_height = (cc.floor_height - prev_floor_height) * scale * self.height
+            engyne.reset_color()
+            engyne.set_color('brass', 3)
+            love.graphics.line(linex, bottom, linex, bottom + overhang_height)
+            love.graphics.setBlendMode('alpha')
+          end
 
-          engyne.set_color('grey', color)
-        
+        end
+
+        if cc.ceiling_height and prev_ceiling_height then
+          local rheight = scale * (prev_ceiling_height - cc.ceiling_height)
           local rbottom = scale * (player.h + player.z - cc.ceiling_height)
           local rtop = rbottom - rheight
 
           local top = self.height * (rtop + 1) / 2
           local bottom = self.height * (rbottom + 1) / 2
-          love.graphics.line(theta, top, theta, bottom)
 
+          if cc.ceiling_height > prev_ceiling_height then
+             engyne.set_color('grey', color)
+
+             love.graphics.line(linex, top, linex, bottom)
+          end
         end
+
         prev_floor_height = cc.floor_height
         prev_ceiling_height = cc.ceiling_height
       elseif cc.ceiling_height and cc.floor_height then
@@ -124,7 +144,10 @@ function VolumeRenderer:draw(map, player)
 
         local top = self.height * (rtop + 1) / 2
         local bottom = self.height * (rbottom + 1) / 2
-        love.graphics.line(theta, top, theta, bottom)
+        love.graphics.line(linex, liney + top, linex, liney + bottom)
+
+        engyne.set_color('brass', 3)
+        love.graphics.line(linex, liney + bottom, linex, liney + self.y + self.height)
 
         prev_floor_height = cc.floor_height
         prev_ceiling_height = cc.ceiling_height
@@ -135,8 +158,10 @@ function VolumeRenderer:draw(map, player)
 
   -- set canvas back to original
   love.graphics.setCanvas()
+  engyne.reset_color()
+  love.graphics.setBlendMode('alpha', 'premultiplied')
+  love.graphics.draw(self.fpv, self.x, self.y)
   love.graphics.setBlendMode('alpha')
-  love.graphics.draw(self.fpv, self.x + 0.5, self.y)
 end
 
 return VolumeRenderer

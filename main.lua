@@ -273,6 +273,18 @@ function love.keypressed(key, unicode)
       else
         level_renderer:pan(10, 0)
       end
+    elseif key == 'kp8' then
+      player.chin = player.chin + 0.05
+      print('chin', player.chin)
+    elseif key == 'kp2' then
+      player.chin = player.chin - 0.05
+      print('chin', player.chin)
+    elseif key == 'kp4' then
+      player.fov = player.fov - math.pi / 12
+      print('fov', player.fov)
+    elseif key == 'kp6' then
+      player.fov = player.fov + math.pi / 12
+      print('fov', player.fov)
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
     or e.state == State.IC_DRAWING_SPLIT then

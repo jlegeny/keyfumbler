@@ -46,6 +46,8 @@ function LevelOverlayRenderer:toggle_mode(mode)
   elseif self.mode == 'distance' then
     self.mode = 'cross'
   elseif self.mode == 'cross' then
+    self.mode = 'crossfill'
+  elseif self.mode == 'crossfill' then
     self.mode = 'lines'
   end
 end
@@ -78,7 +80,7 @@ function LevelOverlayRenderer:draw(map, player)
 
   -- highlight colliding walls
   local res_v
-  if self.mode == 'fill' then
+  if self.mode == 'fill' or self.mode == 'crossfill' then
     res_v = 320
   elseif self.mode == 'lines' then
     res_v = 9
@@ -101,11 +103,11 @@ function LevelOverlayRenderer:draw(map, player)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
 
     local collisions = raycaster.fast_collisions(map, ray)
-    if self.mode == 'cross' then
+    if self.mode == 'cross' or self.mode == 'crossfill' then
       local lx, ly = self.lr:canvas_point(player.rx, player.ry)
       for i, c in ipairs(collisions) do
         local ccx, ccy = self.lr:canvas_point(c.x, c.y)
-        engyne.set_color('grey', 31 - i)
+        engyne.set_color('copper', 8 - math.min(7, i))
         love.graphics.line(lx, ly, ccx, ccy)
         lx, ly = ccx, ccy
       end
