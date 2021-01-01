@@ -127,7 +127,7 @@ function LevelRenderer:draw_map(map, editor_state)
 
     local mid_cx, mid_cy = cline:mid()
 
-    engyne.set_color('copperoxyde')
+    engyne.set_color('copperoxyde', 6)
     love.graphics.line(mid_cx, mid_cy, mid_cx + w.norm_x * 5, mid_cy + w.norm_y * 5)
     engyne.set_small_font()
     local label_x = mid_cx - w.norm_x * 5
@@ -149,7 +149,7 @@ function LevelRenderer:draw_map(map, editor_state)
 
     local mid_cx, mid_cy = cline:mid()
 
-    engyne.set_color('copperoxyde', 3)
+    engyne.set_color('copperoxyde', 6)
     engyne.set_small_font()
     local label_x = mid_cx - w.norm_x * 5
     if w.norm_x > 0 then
@@ -191,8 +191,10 @@ function LevelRenderer:draw_node(node, editor_state)
 
   local mid_cx, mid_cy = cline:mid()
 
-  engyne.set_color('copperoxyde')
-  love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
+  engyne.set_color('copperoxyde', 6)
+  if not node.is_split then
+    love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
+  end
 
   engyne.set_small_font()
   local label_x = mid_cx - node.norm_x * 5

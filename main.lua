@@ -25,6 +25,7 @@ local ToolsRenderer = require 'renderer_tools'
 local HistoryRenderer = require 'renderer_history'
 local InfoRenderer = require 'renderer_info'
 local DrawInfoRenderer = require 'renderer_drawinfo'
+local ItemRenderer = require 'renderer_item'
 local TabsRenderer = require 'renderer_tabs'
 local StatusBarRenderer = require 'renderer_statusbar'
 local VolumeRenderer = require 'renderer_volume'
@@ -50,6 +51,7 @@ tools_renderer = ToolsRenderer()
 history_renderer = HistoryRenderer()
 info_renderer = InfoRenderer()
 drawinfo_renderer = DrawInfoRenderer()
+item_renderer = ItemRenderer()
 tabs_renderer = TabsRenderer()
 volume_renderer = VolumeRenderer()
 statusbar_renderer = StatusBarRenderer()
@@ -130,6 +132,7 @@ function setup(w, h)
   history_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   info_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   drawinfo_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+  item_renderer:setup(sb_x, sb_y, sb_w, sb_h)
 
   statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
@@ -238,7 +241,7 @@ function love.keypressed(key, unicode)
       end
       print('--- collisions ---')
       for i, c in ipairs(raycaster.fast_collisions(map, ray)) do
-        print(i, c.id)
+        print(i, c.id, c.room_id, c.is_split)
       end
      end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
@@ -329,6 +332,8 @@ function love.draw()
   elseif e.sidebar == Sidebar.INFO then
     info_renderer:reset()
     info_renderer:draw_canvas()
+  elseif e.sidebar == Sidebar.ITEM then
+    item_renderer:draw_canvas()
   elseif e.sidebar == Sidebar.DRAW then
     drawinfo_renderer:draw_canvas()
   end
@@ -474,9 +479,9 @@ function love.draw()
         end
       elseif e.probe == Probe.REGION_ANCESTORS then
         if region.parent ~= nil then
-          local frontleaves = raycaster.get_front_leave_ids(region.parent)
+          local frontleaves = raycaster.get_bounding_line_ids(region.parent)
           for _, v in pairs(frontleaves) do
-            e.highlight[v] = { 'copper', 3 }
+            e.highlight[v] = { 'copperoxyde', 6 }
           end
           e.highlight[region.id] = { 'brass', 4 }
         end
@@ -493,6 +498,8 @@ function love.draw()
     info_renderer:draw()
   elseif e.sidebar == Sidebar.DRAW then
     drawinfo_renderer:draw(e)
+  elseif e.sidebar == Sidebar.ITEM then
+    item_renderer:draw(e)
   end
 
   local dt = love.timer.getDelta()

@@ -195,15 +195,17 @@ function place_line_in_bsp(node, ogid, line, next_id, is_split)
   end
 end
 
-function place_rooms_in_bsp(node, rooms)
+function place_room_in_bsp(node, ogid, room)
   if node.is_leaf then
-    node.rooms = util.deepcopy(rooms)
+    node.room_id = ogid
+    node.ceiling_height = room.ceiling_height
+    node.floor_height = room.floor_height
   else
-    local front_rooms = {}
-    local back_rooms = {}
-
-    for id, r in pairs(rooms) do
- --     local dot = Line.point_dot(node.line, room.ax, l.line.ay)
+    local dot = Line.point_dot(node.line, room.x, room.y)
+    if dot < 0 then
+      place_room_in_bsp(node.back, ogid, room)
+    else
+      place_room_in_bsp(node.front, ogid, room)
     end
   end
 end
@@ -220,7 +222,11 @@ function print_bsp(node, depth)
     parent_id = node.parent.id
   end
   if node.is_leaf then
-    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id
+    local room_str = 'nil'
+    if node.room_id ~= nil then
+      room_str = node.room_id
+    end
+    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. room_str
     print(str)
   else
     if node.is_split then
@@ -270,6 +276,16 @@ function Map:update_bsp()
     self.bsp = place_line_in_bsp(self.bsp, ogid, split.line, next_id, true)
   end
 
+  sorted_ids = {}
+  for k, _ in pairs(self.rooms) do
+    table.insert(sorted_ids, k)
+  end
+  table.sort(sorted_ids)
+
+  for i, ogid in ipairs(sorted_ids) do
+    local room = self.rooms[ogid]
+    place_room_in_bsp(self.bsp, ogid, room)
+  end
 
   print('-- BSP --')
   print_bsp(self.bsp, 0)

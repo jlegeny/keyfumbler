@@ -71,21 +71,31 @@ function VolumeRenderer:draw(map, player)
     local angle = player.fov / 2 - theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
     local collisions = raycaster.fast_collisions(map, ray)
-    if #collisions > 0 then
-      local cc = collisions[1]
+    local top
+    local bottom
+    for i = #collisions, 1, - 1 do
+      local cc = collisions[i]
 
-      local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
-      local scale = 1 / dist
-      local height = scale * self.height
+      print(cc.ceiling_height)
+      if cc.is_split then
+      else
+        local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
+        local scale = 1 / dist
+        local height = self.height * scale * (cc.ceiling_height - cc.floor_height)
 
-      local step = dist / 4
-      local illumination = 0.0
-      local light = 1/step
+        local step = dist / 2
+        local illumination = 0.0
+        local light = 1/step
 
-      local final = math.min(illumination + light, 1)
-      local color = math.floor(final * 31)
-      engyne.set_color('grey', color)
-      love.graphics.line(theta, self.height / 2 - height / 2, theta, self.height / 2 + height / 2)
+        local final = math.min(illumination + light, 1)
+        local color = math.floor(final * 31)
+        engyne.set_color('grey', color)
+        
+        local bottom = self.height / 2 + height / 2 - scale * cc.floor_height 
+        local top = self.height / 2 - height / 2 - scale * cc.floor_height
+
+        love.graphics.line(theta, top, theta, bottom)
+      end
       engyne.reset_color()
     end
   end

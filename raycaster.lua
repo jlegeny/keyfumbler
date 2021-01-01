@@ -96,12 +96,29 @@ RayCaster.fast_collisions = function(map, vector)
       if vector_intersects_line(vector, node.line) or (
         node.is_split and vector_intersects_line(vector, lines.swapped(node.line))) then
         local int_x, int_y = lines.intersection(vector, node.line)
+        -- find room in front
+        local dx, dy = (vector.bx - vector.ax) / 10, (vector.by - vector.ay) / 10
+        local hx, hy = int_x - dx, int_y - dy
+        local room = RayCaster.get_region_node(map.bsp, hx, hy)
+        local room_id
+        if room == nil then
+          room_id = nil
+        else
+          room_id = room.id
+        end
         table.insert(collisions, {
           x = int_x,
           y = int_y,
           sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2,
           id = node.ogid,
+          room_id = room_id,
+          is_split = node.is_split,
+          ceiling_height = room.ceiling_height,
+          floor_height = room.floor_height,
         })
+        if not node.is_split then
+          return collisions
+        end
       end
     end
   end
@@ -285,5 +302,44 @@ RayCaster.get_front_leave_ids = function(node, visited)
  
   return ids
 end
+
+RayCaster.get_bounding_line_ids = function(node, visited)
+  if visited == nil then
+    visited = {}
+  end
+
+  visited[node.id] = true
+ 
+  local ids = {}
+  if not node.is_leaf then
+    if visited[node.front.id] == nil then
+      if not node.front.is_leaf then
+        local front = RayCaster.get_bounding_line_ids(node.front, visited)
+        for i = 1, #front do
+          table.insert(ids, front[i])
+        end
+      end
+    end
+
+  --if visited[node.back.id] == nil then
+    --if not node.back.is_leaf then
+      --local back = RayCaster.get_front_leave_ids(node.back, visited)
+      --for i = 1, #back do
+        --table.insert(ids, back[i])
+      --end
+    --end
+  --end
+  end
+
+  if node.parent ~= nil then
+    local parent = RayCaster.get_bounding_line_ids(node.parent, visited)
+    for i = 1, #parent do
+      table.insert(ids, parent[i])
+    end
+  end
+ 
+  return ids
+end
+
 
 return RayCaster

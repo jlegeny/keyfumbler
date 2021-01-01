@@ -43,6 +43,8 @@ function LevelOverlayRenderer:toggle_mode(mode)
   elseif self.mode == 'fill' then
     self.mode = 'distance'
   elseif self.mode == 'distance' then
+    self.mode = 'cross'
+  elseif self.mode == 'cross' then
     self.mode = 'lines'
   end
 end
@@ -98,28 +100,37 @@ function LevelOverlayRenderer:draw(map, player)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
 
     local collisions = raycaster.fast_collisions(map, ray)
-    if #collisions > 0 then
-      local cc = collisions[1]
-
-      local ccx, ccy = self.lr:canvas_point(cc.x, cc.y)
-      love.graphics.line(player_cx, player_cy, ccx, ccy)
-
-      if self.mode == 'line' or self.mode == 'distance' then
-        love.graphics.line(ccx - 4, ccy - 4, ccx + 4, ccy + 4)
-        love.graphics.line(ccx + 4, ccy - 4, ccx - 4, ccy + 4)
+    if self.mode == 'cross' then
+      local lx, ly = self.lr:canvas_point(player.rx, player.ry)
+      for i, c in ipairs(collisions) do
+        local ccx, ccy = self.lr:canvas_point(c.x, c.y)
+        engyne.set_color('grey', 31 - i)
+        love.graphics.line(lx, ly, ccx, ccy)
+        lx, ly = ccx, ccy
       end
+    else
+      if #collisions > 0 then
+        local cc = collisions[1]
 
-      if self.mode == 'distance' then
-        local dist = (cc.x - player.rx) * eye.bx + (cc.y - player.ry) * eye.by
-        love.graphics.print(dist, ccx, ccy + theta * 16)
+        local ccx, ccy = self.lr:canvas_point(cc.x, cc.y)
+        love.graphics.line(player_cx, player_cy, ccx, ccy)
 
-        local step = math.floor(math.sqrt(cc.sqd) / 4)
-        local illumination = 0.5
-        local light = 1/step
-        love.graphics.print(light, ccx, ccy + theta * 16 + 14)
+        if self.mode == 'line' or self.mode == 'distance' then
+          love.graphics.line(ccx - 4, ccy - 4, ccx + 4, ccy + 4)
+          love.graphics.line(ccx + 4, ccy - 4, ccx - 4, ccy + 4)
+        end
+
+        if self.mode == 'distance' then
+          local dist = (cc.x - player.rx) * eye.bx + (cc.y - player.ry) * eye.by
+          love.graphics.print(dist, ccx, ccy + theta * 16)
+
+          local step = math.floor(math.sqrt(cc.sqd) / 4)
+          local illumination = 0.5
+          local light = 1/step
+          love.graphics.print(light, ccx, ccy + theta * 16 + 14)
+        end
       end
     end
-
   end
   love.graphics.setScissor()
 end
