@@ -112,6 +112,14 @@ function EditorState:undoable(op, clean_redo_stack)
   end
 end
 
+function EditorState:selection_count()
+  local cnt = 0
+  for _, _ in pairs(e.selection) do
+    cnt = cnt + 1
+  end
+  return cnt
+end
+
 function EditorState:toggle_draw()
   if self.draw == Draw.WALL then
     self.draw = Draw.SPLIT

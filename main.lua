@@ -206,14 +206,14 @@ function love.keypressed(key, unicode)
           [cc.id] = 'wall'
         }
       end
-    elseif key == 'c' then
+    elseif key == 'delete' then
       e.state = State.CONFIRM
       e.confirmable = {
         action = {
           kind = 'clear',
         },
-        message = 'Press [c] again to clear all',
-        key = 'c',
+        message = 'Press [delete] again to clear all',
+        key = 'delete',
       }
     elseif key == 'return' then
       local mx, my = love.mouse.getPosition()
@@ -243,7 +243,23 @@ function love.keypressed(key, unicode)
       for i, c in ipairs(raycaster.fast_collisions(map, ray)) do
         print(i, c.id, c.room_id, c.is_split)
       end
-     end
+    elseif key == 'down' then
+      if e.sidebar == Sidebar.ITEM then
+        item_renderer:next_stat()
+      end
+    elseif key == 'up' then
+      if e.sidebar == Sidebar.ITEM then
+        item_renderer:prev_stat()
+      end
+    elseif key == 'left' then
+      if e.sidebar == Sidebar.ITEM then
+        item_renderer:dec_stat()
+      end
+    elseif key == 'right' then
+      if e.sidebar == Sidebar.ITEM then
+        item_renderer:inc_stat()
+      end
+    end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
     or e.state == State.IC_DRAWING_SPLIT then
     if key == 'escape' then
@@ -378,7 +394,14 @@ function love.draw()
     else
       e.state = State.IDLE
       e.selection = map:bound_objects_set(e.selection_line_r)
-      e.sidebar = Sidebar.SELECTION
+      item_renderer:reset_item()
+      if e:selection_count() == 1 then
+        local id, kind = next(e.selection)
+        item_renderer:set_item(map, id, kind)
+        e.sidebar = Sidebar.ITEM
+      elseif e:selection_count() > 1 then
+        e.sidebar = Sidebar.SELECTION
+      end
     end
   elseif e.state == State.IC_DRAWING_SPLIT then
     if love.mouse.isDown(1) then
@@ -499,7 +522,7 @@ function love.draw()
   elseif e.sidebar == Sidebar.DRAW then
     drawinfo_renderer:draw(e)
   elseif e.sidebar == Sidebar.ITEM then
-    item_renderer:draw(e)
+    item_renderer:draw(map, e)
   end
 
   local dt = love.timer.getDelta()
@@ -522,9 +545,11 @@ function love.draw()
   if love.keyboard.isDown('w') then
     player.rx = player.rx + dt * math.sin(player.rot) * player.speed
     player.ry = player.ry + dt * math.cos(player.rot) * player.speed
+    player:update(map)
   elseif love.keyboard.isDown('s') then
     player.rx = player.rx - dt * math.sin(player.rot) * player.speed
     player.ry = player.ry - dt * math.cos(player.rot) * player.speed
+    player:update(map)
   end
 
   statusbar_renderer:draw(e, mx, my, rx, ry)

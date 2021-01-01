@@ -82,6 +82,18 @@ function Map:object_at(x, y)
   return nil
 end
 
+function Map:object_by_id(id)
+  if self.walls[id] ~= nil then
+    return self.walls[id]
+  end
+  if self.rooms[id] ~= nil then
+    return self.rooms[id]
+  end
+  if self.splits[id] ~= nil then
+    return self.split[id]
+  end
+end
+
 function Map:add_room(id, room)
   self.rooms[id] = room
   self:update_bsp()
