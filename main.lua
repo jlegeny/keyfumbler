@@ -88,7 +88,7 @@ function love.load()
 
   -- window
   love.window.setTitle("Engyne Edytor")
-  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = true, resizable = true})
+  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = false, resizable = true})
 
   -- fonts
   engyne.set_default_font()
@@ -524,6 +524,7 @@ function love.draw()
     level_renderer:draw_rectangle(e.selection_line_r)
   end
 
+  info_renderer:write('grey', 'fps = {}', love.timer.getFPS())
   statusbar_renderer:write('grey', 'mx = {}, my = {}', mx, my)
   statusbar_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
   statusbar_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)

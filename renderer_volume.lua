@@ -175,9 +175,15 @@ function VolumeRenderer:draw_primitive(map, player)
   love.graphics.setBlendMode('alpha')
 end
 
+local ns = 0
 function VolumeRenderer:surface_segment_renderer(ox, oy, s)
   if s.kind == 'floor' then
-    love.graphics.setColor(1, 0, 0, 0.5)
+    if ns == 0 then
+      love.graphics.setColor(1, 0, 0, 0.5)
+    else
+      love.graphics.setColor(0, 1, 0, 0.5)
+    end
+    ns = (ns + 1) % 2
   elseif s.kind == 'split' then
     love.graphics.setColor(0, 1, 0, 0.5)
     -- engyne.set_color('brass', 3)
@@ -195,10 +201,11 @@ function VolumeRenderer:light_segment_renderer(ox, oy, s)
   local illumination = 0.0
   local light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
 
-  if s.kind == 'wall' then
+  if s.kind == 'wall' or s.kind == 'split' then
     love.graphics.setColor(light, light, light, 1)
   else
-    engyne.set_color('grey', 0)
+    love.graphics.setColor(light / 2, light / 2, light / 2, 1)
+    -- engyne.set_color('grey', 0)
   end
 
   local top = self.height * (s.top + 1) / 2
@@ -208,19 +215,48 @@ end
 
 function VolumeRenderer:photo_segment_renderer(ox, oy, s)
   local illumination = 0.0
-  local light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
-
   if s.kind == 'wall' or s.kind == 'split' then
-    local wall_color = math.floor(light * 31)
-    wall_color = math.min(math.max(wall_color, 0), 31)
+    local light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
+
+    local wall_color = math.floor(light * 62)
+    wall_color = math.min(math.max(wall_color, 0), 62)
     engyne.set_color('grey', wall_color)
+    local top = self.height * (s.top + 1) / 2
+    local bottom = self.height * (s.bottom + 1) / 2
+
+    love.graphics.line(ox, oy + top, ox, oy + bottom)
   else
-    engyne.set_color('brass', 3)
+    local far_light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
+    local far_color = math.floor(far_light * 31)
+    far_color = math.min(math.max(far_color, 0), 31)
+    local close_light = math.min(illumination + 1 / (math.sqrt(s.prev_dist / 2)), 1)
+    local close_color = math.floor(close_light * 31)
+    close_color = math.min(math.max(close_color, 0), 31)
+
+    local top = self.height * (s.top + 1) / 2
+    local bottom = self.height * (s.bottom + 1) / 2
+    
+    if close_color > far_color then
+      local steps = close_color - far_color
+      local dh = (bottom - top) / steps
+      local lh = top
+      for i = 0, steps - 1 do
+        if s.kind == 'floor' then
+          engyne.set_color('grey', far_color + i)
+        else
+          engyne.set_color('grey', close_color - i)
+        end
+        local lt = math.floor(top + i * dh)
+        local lb = math.floor(top + (i + 1) * dh)
+        love.graphics.line(ox, oy + lt, ox, oy + lb)
+      end
+
+    else
+      engyne.set_color('grey', close_color)
+      love.graphics.line(ox, oy + top, ox, oy + bottom)
+    end
   end
 
-  local top = self.height * (s.top + 1) / 2
-  local bottom = self.height * (s.bottom + 1) / 2
-  love.graphics.line(ox, oy + top, ox, oy + bottom)
 end
 
 
@@ -247,7 +283,7 @@ function VolumeRenderer:draw_segments(map, player, segment_renderer)
     local linex = theta + 0.5
     local liney = 0.5
     local ray = Line(player.rx, player.ry, player.rx + minx + dx * theta, player.ry + miny + dy * theta)
-    local collisions = raycaster.fast_collisions(map, ray)
+    local collisions = raycaster.extended_collisions(map, ray)
       
     local segments = VolumeRenderer.segments(eye_x, eye_y, eye_dx, eye_dy, player, collisions)
     self:print_segments(segments)
@@ -285,8 +321,8 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
   local prev_bottom = -1
   local prev_floor_height = collisions[1].floor_height
   local prev_ceiling_height = collisions[1].ceiling_height
-  local prev_scale = nil
-  local prev_dist = nil
+  local prev_scale = 1000
+  local prev_dist = 0.001
 
   if prev_floor_height == nil then
     prev_floor_height = -10
@@ -303,11 +339,6 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       local scale = 1 / dist
 
       if prev_floor_height < cc.floor_height then
-        if prev_scale == nil then
-          prev_scale = scale
-          prev_dist = dist
-        end
-
         local height = prev_scale * (cc.floor_height - prev_floor_height)
         local bottom = prev_top
         local top = prev_scale * (player.h + player.z - cc.floor_height)
@@ -325,11 +356,6 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       end
 
       if prev_ceiling_height > cc.ceiling_height then
-        if prev_scale == nil then
-          prev_scale = scale
-          prev_dist = dist
-        end
-
         local height = prev_scale * (cc.ceiling_height - prev_ceiling_height)
         local top = prev_bottom
         local bottom = prev_scale * (player.h + player.z - cc.ceiling_height)
@@ -353,6 +379,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           kind = 'floor',
           id = cc.room_id,
           dist = dist,
+          prev_dist = prev_dist,
           scale = scale,
           top = floor_top,
           bottom = prev_top,
@@ -366,6 +393,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           kind = 'ceiling',
           id = cc.room_id,
           dist = dist,
+          prev_dist = prev_dist,
           scale = scale,
           top = prev_bottom,
           bottom = ceiling_bottom,
@@ -373,7 +401,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
         prev_bottom = ceiling_bottom
       end
 
-      if not cc.is_split then
+      if not (cc.is_split or cc.is_spot) then
         table.insert(segments, {
           kind = 'wall',
           id = cc.id,

@@ -28,9 +28,9 @@ engyne.set_color = function(color, intensity)
   local c = {1, 0, 1}
 
   if color == 'darkgrey' then
-    c = palette['grey'][intensity * 2 + 1]
+    c = palette['grey'][intensity * 4 + 1]
   elseif color == 'lightgrey' then
-    c = palette['grey'][intensity * 2 + 16]
+    c = palette['grey'][intensity * 4 + 31]
   elseif palette[color] == nil then
     print('Unknown color "', color, '"')
     love.event.quit(1)

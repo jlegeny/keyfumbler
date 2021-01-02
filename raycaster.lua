@@ -91,6 +91,8 @@ RayCaster.fast_collisions = function(map, vector)
   local nodes = RayCaster.get_visible_ordered_nodes(map.bsp, vector.ax, vector.ay, vector.bx, vector.by)
 
   local collisions = {}
+  local lx, ly = vector.ax, vector.ay
+
   for i, node in ipairs(nodes) do
     if not node.is_leaf then
       if vector_intersects_line(vector, node.line) or (
@@ -116,14 +118,47 @@ RayCaster.fast_collisions = function(map, vector)
           ceiling_height = room.ceiling_height,
           floor_height = room.floor_height,
         })
+        lx = int_x
+        ly = int_y
         if not node.is_split then
           return collisions
         end
       end
     end
   end
-
   return collisions
+end
+
+RayCaster.extended_collisions = function(map, vector)
+  local collisions = RayCaster.fast_collisions(map, vector)
+  -- light collisions
+  local collisions_and_spots = {}
+  --local spot_ds = {0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5}
+  --local spot_ds = {1.6^-1, 1.6^-0.5, 1.6^0, 1.6^0.25, 1.6^0.5, 1.6^2, 1.6^3, 1.6^4 }
+  local spot_ds = {2, 4}
+  local next_spot = 1
+  local nx, ny = Line.unit_vector(vector)
+  for i = 1, #collisions do
+    local col = collisions[i]
+    while next_spot <= #spot_ds and spot_ds[next_spot] ^ 2 < col.sqd do
+      local int_x = vector.ax + nx * spot_ds[next_spot]
+      local int_y = vector.ay + ny * spot_ds[next_spot]
+      table.insert(collisions_and_spots, {
+        x = int_x,
+        y = int_y,
+        sqd = spot_ds[next_spot] ^ 2,
+        id = 0,
+        room_id = col.room_id,
+        is_spot = true,
+        ceiling_height = col.ceiling_height,
+        floor_height = col.floor_height,
+      })
+      next_spot = next_spot + 1
+    end
+    table.insert(collisions_and_spots, col)
+  end
+
+  return collisions_and_spots
 end
 
 RayCaster.closest_collision = function(collisions)

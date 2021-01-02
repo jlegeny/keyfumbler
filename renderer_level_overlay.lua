@@ -102,8 +102,8 @@ function LevelOverlayRenderer:draw(map, player)
     local angle = -player.fov / 2 + theta * player.fov / (res_v - 1)
     local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot + angle), player.ry + math.cos(player.rot + angle))
 
-    local collisions = raycaster.fast_collisions(map, ray)
     if self.mode == 'cross' or self.mode == 'crossfill' then
+      local collisions = raycaster.extended_collisions(map, ray)
       local lx, ly = self.lr:canvas_point(player.rx, player.ry)
       for i, c in ipairs(collisions) do
         local ccx, ccy = self.lr:canvas_point(c.x, c.y)
@@ -112,6 +112,7 @@ function LevelOverlayRenderer:draw(map, player)
         lx, ly = ccx, ccy
       end
     else
+      local collisions = raycaster.fast_collisions(map, ray)
       if #collisions > 0 then
         local cc = collisions[1]
 

@@ -1,11 +1,11 @@
 function grey(intensity)
-  local grey = ((intensity + 1) / 32) ^ 2.2 * 255
+  local grey = ((intensity + 1) / 64) ^ 2.2 * 255
   return { grey, grey, grey }
 end
 
 function greys()
   local greys = {}
-  for i = 0, 31 do
+  for i = 0, 63 do
     greys[i] = grey(i)
   end
   return greys
