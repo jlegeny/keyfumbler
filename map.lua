@@ -90,7 +90,7 @@ function Map:object_by_id(id)
     return self.rooms[id]
   end
   if self.splits[id] ~= nil then
-    return self.split[id]
+    return self.splits[id]
   end
 end
 
@@ -133,10 +133,10 @@ function Map:get_id()
 end
 
 function is_point_in(x, y, rect)
-  ax = math.min(rect.ax, rect.bx)
-  ay = math.min(rect.ay, rect.by)
-  bx = math.max(rect.ax, rect.bx)
-  by = math.max(rect.ay, rect.by)
+  local ax = math.min(rect.ax, rect.bx)
+  local ay = math.min(rect.ay, rect.by)
+  local bx = math.max(rect.ax, rect.bx)
+  local by = math.max(rect.ay, rect.by)
   return x >= ax and x <= bx and y >= ay and y <= by
 end
 
@@ -190,8 +190,8 @@ function place_line_in_bsp(node, ogid, line, next_id, is_split)
     new_node.back = back
     return new_node
   else
-    local dota = Line.point_dot(node.line, line.ax, line.ay)
-    local dotb = Line.point_dot(node.line, line.bx, line.by)
+    local dota = Line.fast_dot(node.line, line.ax, line.ay)
+    local dotb = Line.fast_dot(node.line, line.bx, line.by)
     if dota < EPSILON and dotb < EPSILON then
       node.back = place_line_in_bsp(node.back, ogid, line, next_id, is_split)
     elseif dota > -EPSILON and dotb > -EPSILON then
@@ -213,7 +213,7 @@ function place_room_in_bsp(node, ogid, room)
     node.ceiling_height = room.ceiling_height
     node.floor_height = room.floor_height
   else
-    local dot = Line.point_dot(node.line, room.x, room.y)
+    local dot = Line.fast_dot(node.line, room.x, room.y)
     if dot < 0 then
       place_room_in_bsp(node.back, ogid, room)
     else
@@ -222,7 +222,7 @@ function place_room_in_bsp(node, ogid, room)
   end
 end
 
-function print_bsp(node, depth)
+function Map.print_bsp(node, depth)
   local str = ''
   for i = 1, depth do
     str = str .. '  '
@@ -247,8 +247,8 @@ function print_bsp(node, depth)
       str = str .. 'node ' .. node.id .. ' parent ' .. parent_id .. '  w: ' .. node.ogid
     end
     print(str)
-    print_bsp(node.front, depth + 1)
-    print_bsp(node.back, depth + 1)
+    Map.print_bsp(node.front, depth + 1)
+    Map.print_bsp(node.back, depth + 1)
   end
 end
 
@@ -299,9 +299,9 @@ function Map:update_bsp()
     place_room_in_bsp(self.bsp, ogid, room)
   end
 
-  print('-- BSP --')
-  print_bsp(self.bsp, 0)
-  print()
+  --print('-- BSP --')
+  --print_bsp(self.bsp, 0)
+  --print()
 
 end
 

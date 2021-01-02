@@ -1,6 +1,7 @@
 State = {
   IDLE = 0,
   CONFIRM = 1,
+  DUMP = 2,
   IC_IDLE = 100,
   IC_DRAWING_WALL = 101,
   IC_DRAWING_WALL_NORMAL = 102,
@@ -142,6 +143,8 @@ function EditorState:state_str()
     return "Confirm Action"
   elseif self.state == State.IC then
     return "In Canvas"
+  elseif self.state == State.DUMP then
+    return "Dump"
   elseif self.state == State.IC_DRAWING_WALL then
     return "Drawing Wall"
   elseif self.state == State.IC_DRAWING_WALL_NORMAL then

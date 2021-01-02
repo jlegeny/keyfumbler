@@ -143,7 +143,7 @@ RayCaster.get_region_node = function(bsp, rx, ry)
   local node = bsp
 
   while not node.is_leaf do
-    local dot = Line.point_dot(node.line, rx, ry)
+    local dot = Line.fast_dot(node.line, rx, ry)
     if dot <= 0 then
       node = node.back
     else

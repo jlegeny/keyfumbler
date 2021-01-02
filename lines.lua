@@ -11,6 +11,18 @@ lines.parallel = function (lhs, rhs)
   return lvx * rvy - rvx * lvy == 0
 end
 
+lines.segment_crosses_line = function(segment, line)
+  local dota = Line.fast_dot(line, segment.ax, segment.ay)
+  local dotb = Line.fast_dot(line, segment.bx, segment.by)
+  if dota < 0 and dotb < 0 then
+    return -1
+  elseif dota > 0 and dotb > 0 then
+    return 1
+  else
+    return 0
+  end
+end
+
 lines.intersection = function (lhs, rhs)
   local lvx = lhs.bx - lhs.ax
   local lvy = lhs.by - lhs.ay

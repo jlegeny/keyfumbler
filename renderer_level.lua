@@ -270,12 +270,13 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
   local dots = {} 
 
   local y = 0
-  while y < self.height / self.zoom_factor do
+  while y < self.height do
     local x = 0
-    while x < self.width / self.zoom_factor do
-      local region_id = raycaster.get_region_id(map.bsp, x, y)
+    while x < self.width do
+      local rx, ry = self:rel_point(x + self.x, y + self.y)
+      local region_id = raycaster.get_region_id(map.bsp, rx, ry)
   
-      local cx, cy = self:canvas_point(x, y)
+      local cx, cy = self:canvas_point(rx, ry)
 
       if dots[region_id] == nil then
         dots[region_id] = {}

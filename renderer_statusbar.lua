@@ -77,13 +77,18 @@ function StatusBarRenderer:draw(editor_state)
 
   local px = self.x + 200
 
-  for _, block in ipairs(self.blocks) do
-    if block.color ~= color then
-      engyne.set_color(color)
-      color = block.color
+  if editor_state.state == State.DUMP then
+    local text = " F1: BSP"
+    love.graphics.print(text, px, self.y)
+  else
+    for _, block in ipairs(self.blocks) do
+      if block.color ~= color then
+        engyne.set_color(color)
+        color = block.color
+      end
+      love.graphics.print(block.text, px, self.y)
+      px = px + string.len(block.text) * 10
     end
-    love.graphics.print(block.text, px, self.y)
-    px = px + string.len(block.text) * 10
   end
 end
 

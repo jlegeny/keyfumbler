@@ -49,6 +49,12 @@ function Line:point_dot(px, py)
   return (px - self.ax) * nx + (py - self.ay) * ny
 end
 
+function Line:fast_dot(px, py)
+  local nx, ny = Line.fast_norm(self)
+  return (px - self.ax) * nx + (py - self.ay) * ny
+end
+
+
 function Line:describe()
   print("AX", self.ax)
   print("AY", self.ay)

@@ -41,8 +41,8 @@ e = EditorState()
 
 map = Map({ next_id = 1 })
 player = Player()
-player.rx = 30
-player.ry = 30
+player.rx = 50
+player.ry = 54
 player.rot = -math.pi
 
 level_renderer = LevelRenderer()
@@ -75,6 +75,7 @@ function restore(filename)
   map:update_bsp()
   e.undo_stack = {}
   e.redo_stack = {}
+  player:update(map)
 end
 
 -- DRAW FUNCTIONS
@@ -150,6 +151,7 @@ end
 
 function love.keypressed(key, unicode)
   local shift = love.keyboard.isDown('lshift') or love.keyboard.isDown('rshift')
+  local ctrl = love.keyboard.isDown('lctrl') or love.keyboard.isDown('rctrl')
   if e.state == State.IDLE or e.state == State.IC then
     if key >= '1' and key <= '6' then
       e.sidebar = key - '1' + 1
@@ -194,6 +196,8 @@ function love.keypressed(key, unicode)
     elseif key == 'tab' then
       if shift then
         level_overlay_renderer:toggle_mode()
+      elseif ctrl then
+        volume_renderer:toggle_mode()
       else
         level_renderer:toggle_mode()
       end
@@ -222,33 +226,37 @@ function love.keypressed(key, unicode)
         key = 'delete',
       }
     elseif key == 'return' then
-      local mx, my = love.mouse.getPosition()
-      local rx, ry = level_renderer:rel_point(mx, my)
-      print('--- ordered nodes ---')
-      local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry)
-      for i, node in pairs(nodes) do
-        if node.is_leaf then
-          print(i, node.id)
-        else
-          print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
-        end
-      end
-      print('--- ordered visible nodes ---')
       local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
-      local vnodes = raycaster.get_visible_ordered_nodes(map.bsp, ray.ax, ray.ay, ray.bx, ray.by)
-      e.highlight = {}
-      for i, node in pairs(vnodes) do
-        e.highlight[node.id] = { 'brass', 4 }
-        if node.is_leaf then
-          print(i, node.id)
-        else
-          print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
+      if false then
+        local mx, my = love.mouse.getPosition()
+        local rx, ry = level_renderer:rel_point(mx, my)
+        print('--- ordered nodes ---')
+        local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry)
+        for i, node in pairs(nodes) do
+          if node.is_leaf then
+            print(i, node.id)
+          else
+            print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
+          end
+        end
+        print('--- ordered visible nodes ---')
+        local vnodes = raycaster.get_visible_ordered_nodes(map.bsp, ray.ax, ray.ay, ray.bx, ray.by)
+        e.highlight = {}
+        for i, node in pairs(vnodes) do
+          e.highlight[node.id] = { 'brass', 4 }
+          if node.is_leaf then
+            print(i, node.id)
+          else
+            print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
+          end
         end
       end
-      print('--- collisions ---')
-      for i, c in ipairs(raycaster.fast_collisions(map, ray)) do
-        print(i, c.id, c.room_id, c.is_split)
-      end
+      print('--- paint segments ---')
+      local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
+      local eye_px, eye_py = player.rx + player.chin * eye_x, player.ry + player.chin * eye_y
+      local collisions = raycaster.fast_collisions(map, ray)
+      local segments = volume_renderer.segments(eye_px, eye_py, eye_x, eye_y, player, collisions)
+      volume_renderer.print_segments(segments)
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
@@ -285,6 +293,8 @@ function love.keypressed(key, unicode)
     elseif key == 'kp6' then
       player.fov = player.fov + math.pi / 12
       print('fov', player.fov)
+    elseif key == '/' then
+      e.state = State.DUMP
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
     or e.state == State.IC_DRAWING_SPLIT then
@@ -296,6 +306,14 @@ function love.keypressed(key, unicode)
       execute_action(e.confirmable.action)
     end
     e.state = State.IDLE
+  elseif e.state == State.DUMP then
+    if key == 'f1' then
+      print('woe')
+      Map.print_bsp(map.bsp, 0)
+      e.state = State.IDLE
+    elseif key == 'escape' then
+      e.state = State.IDLE
+    end
   end
 end
 
