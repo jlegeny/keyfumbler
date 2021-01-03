@@ -124,6 +124,8 @@ function EditorState:toggle_draw()
   elseif self.draw == Draw.SPLIT then
     self.draw = Draw.ROOM
   elseif self.draw == Draw.ROOM then
+    self.draw = Draw.LIGHT
+  elseif self.draw == Draw.LIGHT then
     self.draw = Draw.WALL
   end
 end

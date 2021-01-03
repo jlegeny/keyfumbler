@@ -10,6 +10,7 @@ local Line = require 'line'
 local Map = require 'map'
 local Player = require 'player'
 local Room = require 'room'
+local Light = require 'light'
 local Split = require 'split'
 local Wall = require 'wall'
 
@@ -346,6 +347,13 @@ function love.mousepressed(mx, my, button, istouch)
             local id = map:get_id()
             local room = Room(rx, ry, 0, 1)
             map:add_room(id, room)
+          end
+        elseif e.draw == Draw.LIGHT then
+          local objat = map:object_at(rx, ry)
+          if objat == nil then
+            local id = map:get_id()
+            local light = Light(rx, ry, 4)
+            map:add_light(id, light)
           end
         elseif e.draw == Draw.SPLIT then
           e.state = State.IC_DRAWING_SPLIT

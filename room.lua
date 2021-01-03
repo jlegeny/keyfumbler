@@ -13,6 +13,7 @@ function Room.new(x, y, floor_height, ceiling_height)
   self.kind = 'room'
   self.x = x
   self.y = y
+  self.light_intesity = 0
   self.floor_height = floor_height
   self.ceiling_height = ceiling_height
   return self

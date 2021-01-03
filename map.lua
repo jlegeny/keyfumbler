@@ -1,5 +1,6 @@
 local util = require 'util'
 
+local Light = require 'light'
 local lines = require 'lines'
 local Line = require 'line'
 local Wall = require 'wall'
@@ -35,6 +36,7 @@ function Map.new(params)
   self.walls = {}
   self.splits = {}
   self.rooms = {}
+  self.lights = {}
   self.bsp = {}
   self:update_bsp()
   return self
@@ -49,6 +51,9 @@ function Map:fix()
   end
   if self.splits == nil then
     self.splits = {}
+  end
+  if self.lights == nil then
+    self.lights = {}
   end
 end
 
@@ -92,10 +97,18 @@ function Map:object_by_id(id)
   if self.splits[id] ~= nil then
     return self.splits[id]
   end
+  if self.lights[id] ~= nil then
+    return self.lights[id]
+  end
 end
 
 function Map:add_room(id, room)
   self.rooms[id] = room
+  self:update_bsp()
+end
+
+function Map:add_light(id, light)
+  self.lights[id] = light
   self:update_bsp()
 end
 
@@ -108,7 +121,7 @@ end
 function Map:remove_object(id, kind)
   local kinds
   if kind == nil then
-    kinds = { 'wall', 'room', 'split' }
+    kinds = { 'wall', 'room', 'split', 'light' }
   else
     kinds = { kind }
   end
@@ -120,6 +133,8 @@ function Map:remove_object(id, kind)
       self.rooms[id] = nil
     elseif kind == 'split' then
       self.splits[id] = nil
+    elseif kind == 'light' then
+      self.lights[id] = nil
     end
   end
 
@@ -156,9 +171,14 @@ function Map:bound_objects_set(rect)
       objects[id] = 'split'
     end
   end
-   for id, room in pairs(self.rooms) do
+  for id, room in pairs(self.rooms) do
     if is_point_in(room.x, room.y, rect) then
       objects[id] = 'room'
+    end
+  end
+  for id, light in pairs(self.lights) do
+    if is_point_in(light.x, light.y, rect) then
+      objects[id] = 'light'
     end
   end
   return objects

@@ -168,61 +168,29 @@ function LevelRenderer:draw_canvas()
   love.graphics.draw(self.canvas, self.x, self.y)
 end
 
-function LevelRenderer:draw_map(map, editor_state)
-  -- draw all the walls
-  for id, w in pairs(map.walls) do
-    local cline = self:canvas_line(w.line)
-
-    engyne.set_color('lightgrey', 6)
-    if editor_state.selection[id] ~= nil then
-      engyne.set_color(unpack(hl_color))
-    end
-    love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
-
-    local mid_cx, mid_cy = cline:mid()
-
-    engyne.set_color('copperoxyde', 6)
-    love.graphics.line(mid_cx, mid_cy, mid_cx + w.norm_x * 5, mid_cy + w.norm_y * 5)
-    engyne.set_small_font()
-    local label_x = mid_cx - w.norm_x * 5
-    if w.norm_x > 0 then
-      label_x = label_x - 10
-    end
-    love.graphics.print(id, label_x, mid_cy - w.norm_y * 5 - 5)
-    engyne.set_default_font()
-  end
-
-  for id, w in pairs(map.splits) do
-    local cline = self:canvas_line(w.line)
-
-    engyne.set_color('brass', 3)
-    if editor_state.selection[id] ~= nil then
-      engyne.set_color(unpack(hl_color))
-    end
-    love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
-
-    local mid_cx, mid_cy = cline:mid()
-
-    engyne.set_color('copperoxyde', 6)
-    engyne.set_small_font()
-    local label_x = mid_cx - w.norm_x * 5
-    if w.norm_x > 0 then
-      label_x = label_x - 10
-    end
-    love.graphics.print(id, label_x, mid_cy - w.norm_y * 5 - 5)
-    engyne.set_default_font()
-  end
-
-
+function LevelRenderer:draw_rooms(map, editor_state)
   for id, r in pairs(map.rooms) do
     local cx, cy = self:canvas_point(r.x, r.y)
-    engyne.set_color('copper', 6)
+    engyne.set_color('copper', 4)
     if editor_state.selection[id] ~= nil then
       engyne.set_color(unpack(hl_color))
     end
     love.graphics.circle('line', cx, cy, 3)
   end
 end
+
+function LevelRenderer:draw_lights(map, editor_state)
+  for id, l in pairs(map.lights) do
+    local cx, cy = self:canvas_point(l.x, l.y)
+    engyne.set_color('copper', 6)
+    if editor_state.selection[id] ~= nil then
+      engyne.set_color(unpack(hl_color))
+      love.graphics.circle('line', cx, cy, math.sqrt(l.intensity) * self.zoom_factor)
+    end
+    love.graphics.circle('line', cx, cy, 3)
+  end
+end
+
 
 function LevelRenderer:draw_node(node, editor_state)
   if node.is_leaf then
@@ -237,7 +205,7 @@ function LevelRenderer:draw_node(node, editor_state)
   elseif hl ~= nil then
     engyne.set_color(hl[1], hl[2])
   elseif node.is_split then
-    engyne.set_color('brass', 3)
+    engyne.set_color('brass', 5)
   else
     engyne.set_color('lightgrey', 7)
   end
@@ -416,7 +384,7 @@ function LevelRenderer:draw_map(map, editor_state)
   for id, w in pairs(map.splits) do
     local cline = self:canvas_line(w.line)
 
-    engyne.set_color('brass', 3)
+    engyne.set_color('brass', 5)
     if editor_state.selection[id] ~= nil then
       engyne.set_color(unpack(hl_color))
     end
@@ -558,6 +526,9 @@ function LevelRenderer:draw(map, editor_state)
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)
   end
+
+  self:draw_rooms(map, editor_state)
+  self:draw_lights(map, editor_state)
 
   local mode_str = self:mode_str()
   local mode_x = self.x + self.width - 15 - string.len(mode_str) * 7
