@@ -3,6 +3,9 @@ local lines = require 'lines'
 
 local RayCaster = {}
 
+local INTERSECT_TOLERANCE = 0.001
+local BSP_TOLERANCE = 0.001
+
 function vector_intersects_line(vector, line)
   local norm_x, norm_y = Line.fast_norm(vector)
   local dota = (line.ax - vector.ax) * norm_x + (line.ay - vector.ay) * norm_y
@@ -10,7 +13,7 @@ function vector_intersects_line(vector, line)
 
   local norm_xl, norm_yl = Line.fast_norm(line)
   local dot = (vector.ax - line.ax) * norm_xl + (vector.ay - line.ay) * norm_yl
-  return (dota < 0 and dotb > 0) and dot > 0
+  return (dota < INTERSECT_TOLERANCE and dotb > -INTERSECT_TOLERANCE) and dot > INTERSECT_TOLERANCE
 end
 
 RayCaster.collisions = function(map, vector)
@@ -28,63 +31,6 @@ RayCaster.collisions = function(map, vector)
   end
 
   return collisions
-end
-
-function bsp_intersect(node, visited, prev, vector)
-  visited[node.id] = true
-
-  local following = {}
-  if not node.is_leaf then
-    local norm_x, norm_y = Line.fast_norm(vector)
-
-    local dota = (node.line.ax - vector.ax) * norm_x + (node.line.ay - vector.ay) * norm_y
-    local dotb = (node.line.bx - vector.ax) * norm_x + (node.line.by - vector.ay) * norm_y
-
-    local norm_xl, norm_yl = Line.fast_norm(nodeline)
-    local dot = (vector.ax - node.line.ax) * norm_xl + (vector.ay - node.line.ay) * norm_yl
-
-    if (dota < 0 and dotb > 0) and dot > 0 then
-      local int_x, int_y = lines.intersection(vector, node.line)
-      table.insert(prev, {
-        x = int_x,
-        y = int_y,
-        sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2,
-        id = node.ogid,
-      })
-      local following = bsp_intersect(node.back, visited, {}, vector)
-      local prev_front = bsp_intersect(node.front, visited, {}, vector)
-      for i = 1, #prev_front do
-        following[#following + i] = prev_front[i]
-      end
-    elseif (dota < 0 and dotb < 0) then
-      if visited[node.front.id] == nil then
-        following = bsp_intersect(node.front, visited, prev, vector)
-      end
-    elseif (dota > 0 and dotb > 0) then
-      if visited[node.back.id] == nil then
-        following = bsp_intersect(node.back, visited, prev, vector)
-      end
-    else
-      local following = bsp_intersect(node.back, visited, {}, vector)
-      local prev_front = bsp_intersect(node.front, visited, {}, vector)
-      for i = 1, #prev_front do
-        following[#following + i] = prev_front[i]
-      end
-     end
-  end
-
-  for i = 1, #following do
-    prev[#prev + i] = following[i]
-  end
-
-  if node.parent == nil then
-    return prev
-  end
-  if visited[node.parent.id] == nil then
-    return bsp_intersect(node.parent, visited, prev, vector)
-  end
-
-  return {}
 end
 
 RayCaster.fast_collisions = function(map, vector)
@@ -132,21 +78,53 @@ end
 
 RayCaster.is_cut_by_wall = function(map, line)
   local collisions = RayCaster.fast_collisions(map, line)
-  for _, cc in pairs(collisions) do
-    if not cc.is_split then
-      return true
+  if #collisions == 0 then
+    return false
+  end
+  local lc = collisions[#collisions]
+  if lc.is_split then
+    return false
+  end
+
+  return Line.fast_dot(map.walls[lc.id].line, line.bx, line.by) < -0.001
+end
+
+
+RayCaster.light_at = function(map, x, y)
+  local l = 0
+  for id, light in pairs(map.lights) do
+    local sqd = (x - light.x) ^ 2 + (y - light.y) ^ 2
+    if sqd < light.intensity * 2 then
+      if x == light.x and y == light.y then
+        l = l + light.intensity
+      elseif not RayCaster.is_cut_by_wall(map, Line(light.x, light.y, x, y)) then
+        l = l + light.intensity / math.sqrt(sqd)
+      end
     end
   end
-  return false
+  return l
+end
+
+local LIGHT_CACHE_DENSITY = 20
+RayCaster.cached_light_at = function(map, x, y, cache)
+  local ux, uy = math.floor(x * LIGHT_CACHE_DENSITY), math.floor(y * LIGHT_CACHE_DENSITY)
+  if cache[ux] == nil or cache[ux][uy] == nil then
+    if cache[ux] == nil then
+      cache[ux] = {}
+    end
+    cache[ux][uy] = RayCaster.light_at(map, x, y)
+  else
+  end
+  return cache[ux][uy]
 end
 
 RayCaster.extended_collisions = function(map, vector)
   local collisions = RayCaster.fast_collisions(map, vector)
   -- light collisions
   local collisions_and_spots = {}
-  --local spot_ds = {0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5}
+  local spot_ds = {0.1, 0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5}
   --local spot_ds = {1.6^-1, 1.6^-0.5, 1.6^0, 1.6^0.25, 1.6^0.5, 1.6^2, 1.6^3, 1.6^4 }
-  local spot_ds = {2, 4}
+  --local spot_ds = {0.6, 0.8, 1, 2, 4}
   local next_spot = 1
   local nx, ny = Line.unit_vector(vector)
   for i = 1, #collisions do
@@ -172,6 +150,16 @@ RayCaster.extended_collisions = function(map, vector)
 
   return collisions_and_spots
 end
+
+RayCaster.extended_collisions_with_light = function(map, vector, light_cache)
+  local collisions = RayCaster.extended_collisions(map, vector)
+  for _, c in ipairs(collisions) do
+    local dynamic_light = RayCaster.cached_light_at(map, c.x, c.y, light_cache)
+    c.dynamic_light = dynamic_light
+  end
+  return collisions
+end
+
 
 RayCaster.closest_collision = function(collisions)
   local closest = collisions[1]
@@ -274,16 +262,16 @@ RayCaster.get_visible_ordered_nodes = function(node, rx, ry, vx, vy)
   local dotv = (vx - node.line.ax) * norm_x + (vy - node.line.ay) * norm_y
 
   local front = {}
-  if dot > 0 or dotv > dot then
+  if dot > -BSP_TOLERANCE or dotv > dot then
     front = RayCaster.get_visible_ordered_nodes(node.front, rx, ry, vx, vy)
   end
   local back = {}
-  if dot < 0 or dotv < dot then
+  if dot < BSP_TOLERANCE or dotv < dot then
     back = RayCaster.get_visible_ordered_nodes(node.back, rx, ry, vx, vy)
   end
 
   local ids = {}
-  if dot > 0 then
+  if dot > BSP_TOLERANCE then
     for i = 1, #front do
       table.insert(ids, front[i])
     end

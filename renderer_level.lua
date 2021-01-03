@@ -184,6 +184,8 @@ function LevelRenderer:draw_lights(map, editor_state)
     local cx, cy = self:canvas_point(l.x, l.y)
     engyne.set_color('copper', 6)
     if editor_state.selection[id] ~= nil then
+      engyne.set_color('brass', 5)
+      love.graphics.circle('line', cx, cy, math.sqrt(l.intensity * 2) * self.zoom_factor)
       engyne.set_color(unpack(hl_color))
       love.graphics.circle('line', cx, cy, math.sqrt(l.intensity) * self.zoom_factor)
     end

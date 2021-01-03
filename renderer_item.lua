@@ -22,9 +22,15 @@ function ItemRenderer.new()
   self._stat_n = 0
   self._stat_mod = 0
 
+  self.delegate = nil
+
   self:setup(0, 0, 200, 200)
 
   return self
+end
+
+function ItemRenderer:set_delegate(delegate)
+  self.delegate = delegate
 end
 
 function ItemRenderer:setup(x, y, width, height)
@@ -128,8 +134,20 @@ function ItemRenderer:draw(map, editor_state)
     self:print_stat('ambient_light', self.obj.ambient_light, 'light')
   end
 
-  if self._stat_mod ~= 0 then
-    map:update_bsp()
+  if self.kind == 'light' then
+    engyne.set_color('lightgrey', 7)
+    love.graphics.print('selected light ${id}' % { id = self.id }, self.x, self.y)
+
+    if self.selected == self._stat_n then
+      self.obj.intensity = self.obj.intensity + self._stat_mod * 1
+    end
+    self:print_stat('intensity', self.obj.intensity, 'light')
+  end
+ 
+  if self.delegate ~= nil then
+    if self._stat_mod ~= 0 then
+      self.delegate.notify('geometry_updated')
+    end
   end
   self._stat_mod = 0
 

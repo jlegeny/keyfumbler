@@ -27,7 +27,11 @@ engyne.set_color = function(color, intensity)
 
   local c = {1, 0, 1}
 
-  if color == 'darkgrey' then
+  if color == 'red' then
+    c = { 1, 0, 0 }
+  elseif color == 'green' then
+    c = { 0, 1, 0 }
+  elseif color == 'darkgrey' then
     c = palette['grey'][intensity * 4 + 1]
   elseif color == 'lightgrey' then
     c = palette['grey'][intensity * 4 + 31]

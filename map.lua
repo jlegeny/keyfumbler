@@ -39,7 +39,12 @@ function Map.new(params)
   self.lights = {}
   self.bsp = {}
   self:update_bsp()
+  self.delegate = {}
   return self
+end
+
+function Map:set_delegate(delegate)
+  self.delegate = delegate
 end
 
 function Map:fix()
@@ -328,6 +333,9 @@ function Map:update_bsp()
   --print('-- BSP --')
   --print_bsp(self.bsp, 0)
   --print()
+  if self.delegate ~= nil then
+    self.delegate.notify('map_updated')
+  end
 
 end
 

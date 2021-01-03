@@ -7,6 +7,7 @@ State = {
   IC_DRAWING_WALL_NORMAL = 102,
   IC_DRAWING_SELECTION = 103,
   IC_DRAWING_SPLIT = 104,
+  IC_DRAWING_VISIBILITY = 105,
 }
 
 EditorMode = {
@@ -62,7 +63,7 @@ function EditorState.new()
   self.highlight = {}
 
   -- intermittent state
-  self.wall_line_r = nil
+  self.current_rline = nil
   self.selection_line_r = nil
 
   return self
@@ -158,6 +159,8 @@ function EditorState:state_str()
     return "Drawing Selection"
   elseif self.state == State.IC_DRAWING_SPLIT then
     return "Drawing Split"
+  elseif self.state == State.IC_DRAWING_VISIBILITY then
+    return "Probing Visibility"
   else
     return "Unknown State"
   end

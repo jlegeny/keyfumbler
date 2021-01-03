@@ -8,6 +8,7 @@ local lines = require 'lines'
 
 local Line = require 'line'
 local Map = require 'map'
+local Level = require 'level'
 local Player = require 'player'
 local Room = require 'room'
 local Light = require 'light'
@@ -60,12 +61,24 @@ statusbar_renderer = StatusBarRenderer()
 WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
 
+clip = true
+
+local delegate = {}
+delegate.notify = function(event)
+  if event == 'geometry_updated' then
+    map:update_bsp()
+  elseif event == 'map_updated' then
+    volume_renderer:invalidate_light_cache()
+  end
+end
 
 -- FUNCTIONS
 
 function save(filename)
+  map.delegate = nil
   local map_str = bitser.dumps(map)
   love.filesystem.write(filename, map_str)
+  map:set_delegate(delegate)
 end
 
 function restore(filename)
@@ -73,6 +86,7 @@ function restore(filename)
   map = bitser.loadData(map_str:getPointer(), map_str:getSize())
   Map.fix(map)
   setmetatable(map, Map)
+  map:set_delegate(delegate)
   map:update_bsp()
   e.undo_stack = {}
   e.redo_stack = {}
@@ -138,6 +152,8 @@ function setup(w, h)
 
   statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
+  item_renderer:set_delegate(delegate)
+  map:set_delegate(delegate)
 end
 
 function love.resize(w, h)
@@ -190,10 +206,12 @@ function love.keypressed(key, unicode)
         pre = pre,
         post = post,
       })
-    elseif key == 'r' or key == 'insert' or key == 'kpenter' then
+    elseif key == 'r' or key == 'kpenter' then
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
+    elseif key == 'insert' then
+      clip = not clip
     elseif key == 'tab' then
       if shift then
         level_overlay_renderer:toggle_mode()
@@ -255,7 +273,10 @@ function love.keypressed(key, unicode)
       print('--- paint segments ---')
       local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
       local eye_px, eye_py = player.rx + player.chin * eye_x, player.ry + player.chin * eye_y
-      local collisions = raycaster.fast_collisions(map, ray)
+      local collisions = raycaster.extended_collisions(map, ray)
+      for i, c in ipairs(collisions) do
+        print(c.is_split, c.dynamic_light)
+      end
       local segments = volume_renderer.segments(eye_px, eye_py, eye_x, eye_y, player, collisions)
       volume_renderer.print_segments(segments)
     elseif key == 'down' then
@@ -340,7 +361,7 @@ function love.mousepressed(mx, my, button, istouch)
       if e.mode == EditorMode.DRAW then
         if e.draw == Draw.WALL then
           e.state = State.IC_DRAWING_WALL
-          e.wall_line_r = Line(rx, ry, rx, ry)
+          e.current_rline = Line(rx, ry, rx, ry)
         elseif e.draw == Draw.ROOM then
           local objat = map:object_at(rx, ry)
           if objat == nil then
@@ -357,7 +378,12 @@ function love.mousepressed(mx, my, button, istouch)
           end
         elseif e.draw == Draw.SPLIT then
           e.state = State.IC_DRAWING_SPLIT
-          e.wall_line_r = Line(rx, ry, rx, ry)
+          e.current_rline = Line(rx, ry, rx, ry)
+        end
+      elseif e.mode == EditorMode.PROBE then
+        if e.probe == Probe.VISIBILITY then
+          e.state = State.IC_DRAWING_VISIBILITY
+          e.current_rline = Line(rx, ry, rx, ry)
         end
       end
     elseif button == 2 then
@@ -367,7 +393,7 @@ function love.mousepressed(mx, my, button, istouch)
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
     if button == 1 then
       local id = map:get_id()
-      local wall = Wall(e.wall_line_r)
+      local wall = Wall(e.current_rline)
       e:undoable({
         op = Operation.ADD_WALL,
         obj = {
@@ -377,7 +403,7 @@ function love.mousepressed(mx, my, button, istouch)
       })
       map:add_wall(id, wall)
       e.state = State.IDLE
-      local cx, cy = level_renderer:canvas_point(e.wall_line_r.bx, e.wall_line_r.by)
+      local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
       love.mouse.setPosition(cx, cy)
     end
   end
@@ -388,7 +414,7 @@ function love.draw()
 
   level_renderer:draw_canvas()
   volume_renderer:draw_canvas()
-  
+
   tabs_renderer:draw_canvas()
   tabs_renderer:draw(e)
   love.graphics.setColor(1, 1, 1, 1)
@@ -425,11 +451,11 @@ function love.draw()
     end
   elseif e.state == State.IC_DRAWING_WALL then
     if love.mouse.isDown(1) then
-      e.wall_line_r.bx = rx
-      e.wall_line_r.by = ry
+      e.current_rline.bx = rx
+      e.current_rline.by = ry
     else
       if is_in_canvas then
-        if e.wall_line_r.ax == e.wall_line_r.bx and e.wall_line_r.ay == e.wall_line_r.by then 
+        if e.current_rline.ax == e.current_rline.bx and e.current_rline.ay == e.current_rline.by then 
           e.state = State.IC
         else
           e.state = State.IC_DRAWING_WALL_NORMAL
@@ -457,14 +483,14 @@ function love.draw()
     end
   elseif e.state == State.IC_DRAWING_SPLIT then
     if love.mouse.isDown(1) then
-      e.wall_line_r.bx = rx
-      e.wall_line_r.by = ry
+      e.current_rline.bx = rx
+      e.current_rline.by = ry
     else
       if is_in_canvas and (
-        e.wall_line_r.ax ~= e.wall_line_r.bx or e.wall_line_r.ay ~= e.wall_line_r.by)
+        e.current_rline.ax ~= e.current_rline.bx or e.current_rline.ay ~= e.current_rline.by)
         then 
           local id = map:get_id()
-          local split = Split(e.wall_line_r)
+          local split = Split(e.current_rline)
           e:undoable({
             op = Operation.ADD_SPLIT,
             obj = {
@@ -474,18 +500,24 @@ function love.draw()
           })
           map:add_split(id, split)
           e.state = State.IDLE
-          local cx, cy = level_renderer:canvas_point(e.wall_line_r.bx, e.wall_line_r.by)
+          local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
           love.mouse.setPosition(cx, cy)
-        end
+      end
       e.state = State.IDLE
     end
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
+  elseif e.state == State.IC_DRAWING_VISIBILITY then
+    if love.mouse.isDown(1) then
+      e.current_rline.bx = rx
+      e.current_rline.by = ry
+    else
+      e.state = State.IDLE
+    end
   end
-  
+
   level_renderer:draw(map, e)
   level_overlay_renderer:draw(map, player)
 
-  volume_renderer:draw(map, player)
 
 
   -- draw the cursor
@@ -501,29 +533,29 @@ function love.draw()
 
   if e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_SPLIT then
     love.graphics.setColor(1, 0, 0, 1)
-    level_renderer:draw_cross(e.wall_line_r.bx, e.wall_line_r.by)
-    level_renderer:draw_line(e.wall_line_r)
+    level_renderer:draw_cross(e.current_rline.bx, e.current_rline.by)
+    level_renderer:draw_line(e.current_rline)
   end
 
   if e.state == State.IC_DRAWING_WALL_NORMAL then 
-    local wall_line_c = level_renderer:canvas_line(e.wall_line_r) 
+    local wall_line_c = level_renderer:canvas_line(e.current_rline) 
 
     love.graphics.setColor(1, 0.8, 0, 1)
-    level_renderer:draw_line(e.wall_line_r)
+    level_renderer:draw_line(e.current_rline)
 
-    local mid_rx, mid_ry = e.wall_line_r:mid()
-    local norm_rx, norm_ry = e.wall_line_r:norm_vector()
+    local mid_rx, mid_ry = e.current_rline:mid()
+    local norm_rx, norm_ry = e.current_rline:norm_vector()
 
-    local dot = e.wall_line_r:point_dot(rx, ry)
+    local dot = e.current_rline:point_dot(rx, ry)
     info_renderer:write('green', 'norm_x = {}, norm_y = {}', norm_rx, norm_ry)
     info_renderer:write('green', 'dot = {}', dot)
 
     love.graphics.setColor(1, 0, 0, 1)
-    
+
     level_renderer:draw_line(Line(mid_rx, mid_ry, mid_rx + norm_rx * 2, mid_ry + norm_ry * 2))
 
     if dot < 0 then
-      e.wall_line_r:swap()
+      e.current_rline:swap()
     end
   end
 
@@ -531,6 +563,18 @@ function love.draw()
     engyne.set_color('copperoxyde')
     level_renderer:draw_rectangle(e.selection_line_r)
   end
+
+  if e.state == State.IC_DRAWING_VISIBILITY then
+    local obstructed = raycaster.is_cut_by_wall(map, e.current_rline)
+    if obstructed then
+      engyne.set_color('red')
+    else
+      engyne.set_color('green')
+    end
+    level_renderer:draw_cross(e.current_rline.bx, e.current_rline.by)
+    level_renderer:draw_line(e.current_rline)
+  end
+
 
   info_renderer:write('grey', 'fps = {}', love.timer.getFPS())
   statusbar_renderer:write('grey', 'mx = {}, my = {}', mx, my)
@@ -572,6 +616,7 @@ function love.draw()
   end
 
   if e.sidebar == Sidebar.INFO then
+    info_renderer:write('grey', 'light_at {}', raycaster.light_at(map, rx, ry))
     info_renderer:draw()
   elseif e.sidebar == Sidebar.DRAW then
     drawinfo_renderer:draw(e)
@@ -579,34 +624,24 @@ function love.draw()
     item_renderer:draw(map, e)
   end
 
+  -- 3D View
+
   local dt = love.timer.getDelta()
+  volume_renderer:draw(map, player, dt)
 
   -- player controls
   if love.keyboard.isDown('a') then
-    player.rot = player.rot + dt * player.rot_speed
+    player:rotate_ccw(dt)
   elseif love.keyboard.isDown('d') then
-    player.rot = player.rot - dt * player.rot_speed
-  end
-
-  if player.rot > math.pi then
-    player.rot = player.rot - math.pi * 2
-  end
-
-  if player.rot < -math.pi then
-    player.rot = player.rot + math.pi * 2
+    player:rotate_cw(dt)
   end
 
   if love.keyboard.isDown('w') then
-    player.rx = player.rx + dt * math.sin(player.rot) * player.speed
-    player.ry = player.ry + dt * math.cos(player.rot) * player.speed
-    player:update(map)
+    player:step_forward(dt, map)
   elseif love.keyboard.isDown('s') then
-    player.rx = player.rx - dt * math.sin(player.rot) * player.speed
-    player.ry = player.ry - dt * math.cos(player.rot) * player.speed
-    player:update(map)
+    player:step_backward(dt, map)
   end
 
   statusbar_renderer:draw(e, mx, my, rx, ry)
-
 end
 

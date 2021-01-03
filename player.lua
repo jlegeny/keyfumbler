@@ -18,6 +18,7 @@ function Player.new()
   self.rot = 0
   self.z = 0
   self.h = 1
+  self.w = 0.5
   self.chin = 0
 
   self.speed = 5
@@ -33,6 +34,45 @@ function Player:update(map)
     self.z = region.floor_height
   end
 end
+
+function Player:rotate_cw(dt)
+  self.rot = self.rot - dt * self.rot_speed
+  if self.rot < -math.pi then
+    self.rot = self.rot + math.pi * 2
+  end
+end
+
+function Player:rotate_ccw(dt)
+  self.rot = self.rot + dt * self.rot_speed
+  if self.rot > math.pi then
+    self.rot = self.rot - math.pi * 2
+  end
+end
+
+function Player:step_forward(dt, map)
+  dx = dt * math.sin(self.rot) * self.speed
+  dy = dt * math.cos(self.rot) * self.speed
+  wx = math.sin(self.rot) * self.w
+  wy = math.cos(self.rot) * self.w
+
+  local obstructed = self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
+  self.rx = self.rx + dx
+  self.ry = self.ry + dy
+  self:update(map)
+end
+
+function Player:step_backward(dt, map)
+  dx = -dt * math.sin(self.rot) * self.speed
+  dy = -dt * math.cos(self.rot) * self.speed
+  wx = -math.sin(self.rot) * self.w
+  wy = -math.cos(self.rot) * self.w
+
+  local obstructed = self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
+  self.rx = self.rx + dx
+  self.ry = self.ry + dy
+  self:update(map)
+end
+
 
 return Player
 

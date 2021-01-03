@@ -2,6 +2,8 @@ local Line = require 'line'
 
 local lines = {}
 
+local CROSS_TOLERANCE = 0.001
+
 lines.parallel = function (lhs, rhs)
   local lvx = lhs.bx - lhs.ax
   local lvy = lhs.by - lhs.ay
@@ -14,9 +16,9 @@ end
 lines.segment_crosses_line = function(segment, line)
   local dota = Line.fast_dot(line, segment.ax, segment.ay)
   local dotb = Line.fast_dot(line, segment.bx, segment.by)
-  if dota < 0 and dotb < 0 then
+  if dota < CROSS_TOLERANCE and dotb < CROSS_TOLERANCE then
     return -1
-  elseif dota > 0 and dotb > 0 then
+  elseif dota > -CROSS_TOLERANCE and dotb > -CROSS_TOLERANCE then
     return 1
   else
     return 0
