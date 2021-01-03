@@ -49,6 +49,11 @@ function Map:fix()
   if self.rooms == nil then
     self.rooms = {}
   end
+  for _, r in pairs(self.rooms) do
+    if r.ambient_light == nil then
+      r.ambient_light = 0
+    end
+  end
   if self.splits == nil then
     self.splits = {}
   end
@@ -232,6 +237,7 @@ function place_room_in_bsp(node, ogid, room)
     node.room_id = ogid
     node.ceiling_height = room.ceiling_height
     node.floor_height = room.floor_height
+    node.ambient_light = room.ambient_light
   else
     local dot = Line.fast_dot(node.line, room.x, room.y)
     if dot < 0 then

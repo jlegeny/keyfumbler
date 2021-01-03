@@ -213,10 +213,16 @@ function VolumeRenderer:light_segment_renderer(ox, oy, s)
   love.graphics.line(ox, oy + top, ox, oy + bottom)
 end
 
+function VolumeRenderer:light_at(map, x, y)
+  for id, light in map.lights do
+
+  end
+end
+
 function VolumeRenderer:photo_segment_renderer(ox, oy, s)
-  local illumination = 0.0
+  local illumination = s.ambient_light / 64
   if s.kind == 'wall' or s.kind == 'split' then
-    local light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
+    local light = math.min(illumination * 1 / (math.sqrt(s.dist / 2)), 1)
 
     local wall_color = math.floor(light * 62)
     wall_color = math.min(math.max(wall_color, 0), 62)
@@ -226,10 +232,10 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
 
     love.graphics.line(ox, oy + top, ox, oy + bottom)
   else
-    local far_light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
+    local far_light = math.min(illumination * 1 / (math.sqrt(s.dist / 2)), 1)
     local far_color = math.floor(far_light * 31)
     far_color = math.min(math.max(far_color, 0), 31)
-    local close_light = math.min(illumination + 1 / (math.sqrt(s.prev_dist / 2)), 1)
+    local close_light = math.min(illumination * 1 / (math.sqrt(s.prev_dist / 2)), 1)
     local close_color = math.floor(close_light * 31)
     close_color = math.min(math.max(close_color, 0), 31)
 
@@ -351,6 +357,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           top = top,
           bottom = bottom,
           height = height,
+          ambient_light = cc.ambient_light,
         })
         prev_top = top
       end
@@ -368,6 +375,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           top = top,
           bottom = bottom,
           height = height,
+          ambient_light = cc.ambient_light,
         })
         prev_bottom = bottom
       end
@@ -383,6 +391,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           scale = scale,
           top = floor_top,
           bottom = prev_top,
+          ambient_light = cc.ambient_light,
         })
         prev_top = floor_top
       end
@@ -397,6 +406,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           scale = scale,
           top = prev_bottom,
           bottom = ceiling_bottom,
+          ambient_light = cc.ambient_light,
         })
         prev_bottom = ceiling_bottom
       end
@@ -409,6 +419,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           scale = scale,
           top = prev_top,
           bottom = prev_bottom,
+          ambient_light = cc.ambient_light,
         })
       end
 

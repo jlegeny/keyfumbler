@@ -122,6 +122,10 @@ function ItemRenderer:draw(map, editor_state)
       self.obj.ceiling_height = self.obj.ceiling_height + self._stat_mod * 0.125
     end
     self:print_stat('ceiling_height', self.obj.ceiling_height, 'height')
+    if self.selected == self._stat_n then
+      self.obj.ambient_light = self.obj.ambient_light + self._stat_mod * 1
+    end
+    self:print_stat('ambient_light', self.obj.ambient_light, 'light')
   end
 
   if self._stat_mod ~= 0 then

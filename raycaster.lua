@@ -117,6 +117,7 @@ RayCaster.fast_collisions = function(map, vector)
           is_split = node.is_split,
           ceiling_height = room.ceiling_height,
           floor_height = room.floor_height,
+          ambient_light = room.ambient_light,
         })
         lx = int_x
         ly = int_y
@@ -127,6 +128,16 @@ RayCaster.fast_collisions = function(map, vector)
     end
   end
   return collisions
+end
+
+RayCaster.is_cut_by_wall = function(map, line)
+  local collisions = RayCaster.fast_collisions(map, line)
+  for _, cc in pairs(collisions) do
+    if not cc.is_split then
+      return true
+    end
+  end
+  return false
 end
 
 RayCaster.extended_collisions = function(map, vector)
@@ -152,6 +163,7 @@ RayCaster.extended_collisions = function(map, vector)
         is_spot = true,
         ceiling_height = col.ceiling_height,
         floor_height = col.floor_height,
+        ambient_light = col.ambient_light,
       })
       next_spot = next_spot + 1
     end

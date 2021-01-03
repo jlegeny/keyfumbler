@@ -25,6 +25,7 @@ Draw = {
 Probe = {
   REGION_PARENT_SUBTREE = 0,
   REGION_ANCESTORS = 1,
+  VISIBILITY = 2,
 }
 
 Sidebar = {
@@ -134,6 +135,8 @@ function EditorState:toggle_probe()
   if self.probe == Probe.REGION_ANCESTORS then
     self.probe = Probe.REGION_PARENT_SUBTREE
   elseif self.probe == Probe.REGION_PARENT_SUBTREE then
+    self.probe = Probe.VISIBILITY
+  elseif self.probe == Probe.VISIBILITY then
     self.probe = Probe.REGION_ANCESTORS
   end
 end
@@ -177,6 +180,8 @@ function EditorState:probe_str()
     return 'RPS'
   elseif self.probe == Probe.REGION_ANCESTORS then
     return 'RA'
+  elseif self.probe == Probe.VISIBILITY then
+    return 'VIS'
   else
     return 'Unknown Probe'
   end

@@ -345,7 +345,7 @@ function love.mousepressed(mx, my, button, istouch)
           local objat = map:object_at(rx, ry)
           if objat == nil then
             local id = map:get_id()
-            local room = Room(rx, ry, 0, 1)
+            local room = Room(rx, ry, 0, 1, 4)
             map:add_room(id, room)
           end
         elseif e.draw == Draw.LIGHT then
