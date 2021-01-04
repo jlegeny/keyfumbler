@@ -56,10 +56,7 @@ end
 
 
 function Line:describe()
-  print("AX", self.ax)
-  print("AY", self.ay)
-  print("BX", self.bx)
-  print("BY", self.by)
+  print("{", self.ax, self.ay, self.bx, self.by, "}")
 end
 
 Line.__index = Line

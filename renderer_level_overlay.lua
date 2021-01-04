@@ -68,6 +68,7 @@ end
 function LevelOverlayRenderer:draw(map, player)
   love.graphics.setScissor(self.lr.x, self.lr.y, self.lr.width, self.lr.height)
   love.graphics.setBlendMode('alpha')
+
   -- draw the player
   local player_cx, player_cy = self.lr:canvas_point(player.rx, player.ry)
   engyne.set_color('copper', 5)

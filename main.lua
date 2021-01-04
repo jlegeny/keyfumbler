@@ -366,7 +366,7 @@ function love.mousepressed(mx, my, button, istouch)
           local objat = map:object_at(rx, ry)
           if objat == nil then
             local id = map:get_id()
-            local room = Room(rx, ry, 0, 1, 4)
+            local room = Room(rx, ry, 0, 2, 32)
             map:add_room(id, room)
           end
         elseif e.draw == Draw.LIGHT then
@@ -584,7 +584,15 @@ function love.draw()
   if e.state == State.IC then
     local region = raycaster.get_region_node(map.bsp, rx, ry)
     statusbar_renderer:write('grey', 'region = {}', region.id)
-    e.highlight = { [region.id] = { 'darkgrey', 4 } }
+    
+    if region.poly ~= nil then
+      for i, p in ipairs(region.poly) do
+        info_renderer:write('grey', 'p{} {},{}', i, p[1], p[2])
+      end
+      --level_renderer:draw_poly(region.poly, {'red'})
+    end
+
+    e.highlight = { [region.id] = { 'red' } }
     if e.mode == EditorMode.PROBE then
       if e.probe == Probe.REGION_PARENT_SUBTREE then
         if region.parent ~= nil then

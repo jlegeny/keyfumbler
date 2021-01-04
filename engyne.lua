@@ -49,7 +49,10 @@ engyne.reset_color = function()
   love.graphics.setColor(1, 1, 1, 1)
 end
 
-engyne.hash_color = function(seed)
+engyne.hash_color = function(seed, alpha)
+  if alpha == nil then
+    alpha = 1
+  end
   local a = 1103515245
   local c = 12345
   local m = 2 ^ 16
@@ -58,7 +61,7 @@ engyne.hash_color = function(seed)
   local green = (a * red + c) % m;
   local blue = (a * green + c) % m;
 
-  love.graphics.setColor((red / m), (green / m), (blue / m), 1)
+  love.graphics.setColor((red / m), (green / m), (blue / m), alpha)
 end
 
 engyne.util = {}

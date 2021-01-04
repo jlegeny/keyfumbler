@@ -1,5 +1,6 @@
 local util = require 'util'
 
+local geom = require 'geom'
 local Light = require 'light'
 local lines = require 'lines'
 local Line = require 'line'
@@ -330,13 +331,24 @@ function Map:update_bsp()
     place_room_in_bsp(self.bsp, ogid, room)
   end
 
+  update_polys(self.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
+
   --print('-- BSP --')
   --print_bsp(self.bsp, 0)
   --print()
   if self.delegate ~= nil then
     self.delegate.notify('map_updated')
   end
+end
 
+function update_polys(node, poly)
+  if node.is_leaf then
+    node.poly = util.deepcopy(poly)
+  else
+    local front, back = geom.splitpoly(poly, node.line)
+    update_polys(node.front, front)
+    update_polys(node.back, back)
+  end
 end
 
 return Map

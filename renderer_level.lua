@@ -193,7 +193,6 @@ function LevelRenderer:draw_lights(map, editor_state)
   end
 end
 
-
 function LevelRenderer:draw_node(node, editor_state)
   if node.is_leaf then
     return
@@ -457,42 +456,25 @@ function LevelRenderer:draw_bsp(map, editor_state)
   self:draw_node(map.bsp, editor_state)
 end
 
-function LevelRenderer:draw_bsp_regions(map, editor_state)
-  local dots = {} 
-
-  local y = 0
-  while y < self.height / self.zoom_factor do
-    local x = 0
-    while x < self.width / self.zoom_factor do
-      local region_id = raycaster.get_region_id(map.bsp, x, y)
-  
-      local cx, cy = self:canvas_point(x, y)
-
-      if dots[region_id] == nil then
-        dots[region_id] = {}
-      end
-
-      table.insert(dots[region_id], cx)
-      table.insert(dots[region_id], cy)
-      x = x + 0.250
-    end
-    y = y + 0.250
-  end
-
-  for region_id, dts in pairs(dots) do 
-    local hl = editor_state.highlight[region_id]
+function LevelRenderer:draw_bsp_polygons(node, editor_state)
+  if node.is_leaf then
+    local hl = editor_state.highlight[node.id]
     if self.mode == 'bsp_r' then
-      if hl ~= nil then
-        engyne.set_color(hl[1], hl[2])
-      else
-        engyne.hash_color(region_id)
-      end
-      love.graphics.points(dts)
-    elseif hl ~= nil then
-      engyne.set_color(hl[1], hl[2])
-      love.graphics.points(dts)
+      engyne.hash_color(node.id, 0.3)
+      self:draw_poly(node.poly, 'fill')
     end
+    if hl ~= nil then
+      engyne.set_color(hl[1], hl[2])
+      self:draw_poly(node.poly, 'line')
+    end
+  else
+    self:draw_bsp_polygons(node.front, editor_state)
+    self:draw_bsp_polygons(node.back, editor_state)
   end
+end
+
+function LevelRenderer:draw_bsp_regions(map, editor_state)
+  self:draw_bsp_polygons(map.bsp, editor_state)
 end
 
 function LevelRenderer:draw_cross(rx, ry)
@@ -515,6 +497,21 @@ function LevelRenderer:draw_rectangle(rline)
   love.graphics.line(cline.bx, cline.ay, cline.bx, cline.by)
   love.graphics.line(cline.bx, cline.by, cline.ax, cline.by)
   love.graphics.line(cline.ax, cline.by, cline.ax, cline.ay)
+end
+
+function LevelRenderer:draw_poly(poly, mode)
+  if #poly < 3 then
+    return
+  end
+  local vertices = {}
+  for i = 1, #poly do
+    local j = (i % #poly) + 1
+    local ax, ay = self:canvas_point(unpack(poly[i]))
+    local bx, by = self:canvas_point(unpack(poly[j]))
+    table.insert(vertices, ax)
+    table.insert(vertices, ay)
+  end
+  love.graphics.polygon(mode, vertices)
 end
 
 function LevelRenderer:draw(map, editor_state)
