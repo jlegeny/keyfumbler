@@ -232,7 +232,7 @@ function LevelRenderer:draw_node(node, editor_state)
 end
 
 function LevelRenderer:draw_bsp(map, editor_state)
-  self:draw_node(map.bsp, editor_state)
+  self:draw_node(map.volatile.bsp, editor_state)
 end
 
 function LevelRenderer:draw_bsp_regions(map, editor_state)
@@ -243,7 +243,7 @@ function LevelRenderer:draw_bsp_regions(map, editor_state)
     local x = 0
     while x < self.width do
       local rx, ry = self:rel_point(x + self.x, y + self.y)
-      local region_id = raycaster.get_region_id(map.bsp, rx, ry)
+      local region_id = raycaster.get_region_id(map.volatile.bsp, rx, ry)
   
       local cx, cy = self:canvas_point(rx, ry)
 
@@ -453,7 +453,7 @@ function LevelRenderer:draw_node(node, editor_state)
 end
 
 function LevelRenderer:draw_bsp(map, editor_state)
-  self:draw_node(map.bsp, editor_state)
+  self:draw_node(map.volatile.bsp, editor_state)
 end
 
 function LevelRenderer:draw_bsp_polygons(node, editor_state)
@@ -474,7 +474,7 @@ function LevelRenderer:draw_bsp_polygons(node, editor_state)
 end
 
 function LevelRenderer:draw_bsp_regions(map, editor_state)
-  self:draw_bsp_polygons(map.bsp, editor_state)
+  self:draw_bsp_polygons(map.volatile.bsp, editor_state)
 end
 
 function LevelRenderer:draw_cross(rx, ry)

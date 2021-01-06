@@ -14,9 +14,13 @@ geom.normalize_line = function(line)
   end
 end
 
-function print_poly(poly)
+geom.print_poly = function(poly, prefix)
+  if prefix == nil then
+    prefix = ''
+  end
   for i, p in ipairs(poly) do
-    print('${i} : [${x}, ${y}]' % {
+    print('${prefix}${i} : [${x}, ${y}]' % {
+      prefix = prefix,
       i = i, x = p[1], y = p[2]
     })
   end
@@ -45,6 +49,17 @@ geom.splitpoly = function(poly, line)
         table.insert(polya, {intx, inty})
         table.insert(polyb, {poly[i][1], poly[i][2]})
         table.insert(polyb, {intx, inty})
+      elseif dot > -lines.CROSS_TOLERANCE and dot < lines.CROSS_TOLERANCE then
+        local k = #polya
+        if #polya == 0 or 
+          (poly[i][1] ~= polya[k][1] or poly[i][2] ~= polya[k][2]) then
+          table.insert(polya, {poly[i][1], poly[i][2]})
+        end
+        local k = #polyb
+        if #polyb == 0 or
+          (poly[i][1] ~= polyb[k][1] or poly[i][2] ~= polyb[k][2]) then
+          table.insert(polyb, {poly[i][1], poly[i][2]})
+        end
       end
     else
       if crosses == 1 then
@@ -58,13 +73,42 @@ geom.splitpoly = function(poly, line)
   return polya, polyb
 end
 
+geom.dedupe_poly = function(poly, line)
+  if #poly == 0 then
+    return {}
+  end
+  local res = {poly[1]}
+  for i = 2, #poly do
+    if poly[i][1] ~= res[#res][1] or poly[i][2] ~= res[#res][2] then
+      table.insert(res, poly[i])
+    end
+  end
+  return res
+end
+
 function test()
   local unit_square = { {0, 0}, {1, 0}, {1, 1}, {0, 1} }
 
-  local left, right = geom.splitpoly(unit_square, Line(0.5, 0, 0.5, 1))
-  local left, right = geom.splitpoly(unit_square, Line(2, -1, -1, 2))
-  local left, right = geom.splitpoly(unit_square, Line(0, 0.5, 0.5, 0))
-  local left, right = geom.splitpoly(unit_square, Line(2, 0, 2, 1))
+  --local left, right = geom.splitpoly(unit_square, Line(0.5, 0, 0.5, 1))
+  --local left, right = geom.splitpoly(unit_square, Line(2, -1, -1, 2))
+  --local left, right = geom.splitpoly(unit_square, Line(0, 0.5, 0.5, 0))
+  --local left, right = geom.splitpoly(unit_square, Line(2, 0, 2, 1))
+
+  --local bugged = { {0, 0}, {1, 0}, {1, 1}, {0, 1} }
+  --local left, right = geom.splitpoly(bugged, Line(0, 0, 0, 1))
+  --print('left')
+  --geom.print_poly(right, '  ')
+  --print('right')
+  --geom.print_poly(left, '  ')
+
+  local bugged2 = { {1, 0}, {1, 1}, {0, 1}, {0, 0} }
+  local left, right = geom.splitpoly(bugged2, Line(0, 1, 0, 0))
+  print('left')
+  geom.print_poly(right, '  ')
+  print('right')
+  geom.print_poly(left, '  ')
 end
+
+-- test()
 
 return geom

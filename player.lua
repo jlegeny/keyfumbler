@@ -29,7 +29,7 @@ function Player.new()
 end
 
 function Player:update(map)
-  local region = raycaster.get_region_node(map.bsp, self.rx, self.ry)
+  local region = raycaster.get_region_node(map.volatile.bsp, self.rx, self.ry)
   if region.floor_height ~= nil then
     self.z = region.floor_height
   end

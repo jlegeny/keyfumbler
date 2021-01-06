@@ -18,6 +18,7 @@ function VolumeRenderer.new()
   self.light_cache = {}
   self.effect = love.graphics.newShader [[
   #pragma language glsl3
+  #define PI 3.1415926538
 
   uniform float time;
 
@@ -29,16 +30,16 @@ function VolumeRenderer.new()
 
   vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
   {
-    float st = random(texture_coords);
+    float st = random(texture_coords + time * 0);
     float x = texture_coords.x;
     float y = texture_coords.y;
-    x += mod(st, 0.005);
+    x += mod(st, 0.02);
     st = random(vec2(x, st));
-    y += mod(st, 0.005);
+    y += mod(st, 0.02);
     vec2 replace_coords = vec2(x, y);
     vec4 texturecolor = Texel(tex, replace_coords);
     float t = random(texture_coords + time * 0);
-    vec3 grain = vec3(mod(t, 0.05));
+    vec3 grain = vec3(mod(t, 0.02));
     return texturecolor * color + vec4(grain, 1);
   }
   ]]
@@ -56,6 +57,7 @@ function VolumeRenderer:setup(x, y, width, height)
   self.height = height
   self.canvas = love.graphics.newCanvas(self.width, self.height)
   self.fpv = love.graphics.newCanvas(self.width, self.height)
+  self.fpv:setFilter("nearest", "nearest")
   self:pre_render_canvas()
 end
 
@@ -354,10 +356,6 @@ function VolumeRenderer:draw_segments(map, player, segment_renderer)
 
   -- set canvas back to original
   love.graphics.setCanvas()
-  engyne.reset_color()
-  love.graphics.setBlendMode('alpha', 'premultiplied')
-  love.graphics.draw(self.fpv, self.x, self.y)
-  love.graphics.setBlendMode('alpha')
 end
 
 VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisions)
@@ -516,12 +514,12 @@ VolumeRenderer.print_segments = function(segments)
   end
 end
 
-function VolumeRenderer:draw(map, player, dt)
+function VolumeRenderer:draw(map, player, dt, fullscreen)
   self.time = self.time + dt
 
   --self.effect:send('time', self.time)
-
   --love.graphics.setShader(self.effect)
+
   if self.mode == 'photo' then
     self:draw_segments(map, player, VolumeRenderer.photo_segment_renderer)
   elseif self.mode == 'surface' then
@@ -529,6 +527,18 @@ function VolumeRenderer:draw(map, player, dt)
   elseif self.mode == 'light' then
     self:draw_segments(map, player, VolumeRenderer.light_segment_renderer)
   end
+  engyne.reset_color()
+
+  love.graphics.setBlendMode('alpha', 'premultiplied')
+  if fullscreen then
+    local width, height = love.graphics.getDimensions()
+    local mult = math.min(height / self.height, width / self.width)
+    love.graphics.draw(self.fpv, 0, 0, 0, mult, mult)
+  else
+    love.graphics.draw(self.fpv, self.x, self.y)
+  end
+  love.graphics.setBlendMode('alpha')
+
   love.graphics.setShader()
 end
 

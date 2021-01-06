@@ -34,7 +34,7 @@ RayCaster.collisions = function(map, vector)
 end
 
 RayCaster.fast_collisions = function(map, vector)
-  local nodes = RayCaster.get_visible_ordered_nodes(map.bsp, vector.ax, vector.ay, vector.bx, vector.by)
+  local nodes = RayCaster.get_visible_ordered_nodes(map.volatile.bsp, vector.ax, vector.ay, vector.bx, vector.by)
 
   local collisions = {}
   local lx, ly = vector.ax, vector.ay
@@ -47,7 +47,7 @@ RayCaster.fast_collisions = function(map, vector)
         -- find room in front
         local dx, dy = (vector.bx - vector.ax) / 100, (vector.by - vector.ay) / 100
         local hx, hy = int_x - dx, int_y - dy
-        local room = RayCaster.get_region_node(map.bsp, hx, hy)
+        local room = RayCaster.get_region_node(map.volatile.bsp, hx, hy)
         local room_id
         if room == nil then
           room_id = nil

@@ -62,6 +62,7 @@ WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
 
 clip = true
+fullscreen = false
 
 local delegate = {}
 delegate.notify = function(event)
@@ -103,7 +104,7 @@ function love.load()
 
   -- window
   love.window.setTitle("Engyne Edytor")
-  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = false, resizable = true})
+  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = false, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
 
   -- fonts
   engyne.set_default_font()
@@ -161,7 +162,7 @@ function love.resize(w, h)
 end
 
 function love.quit()
-  map.bsp = {}
+  map.volatile = {}
   save('scratch.map')
   return false
 end
@@ -206,10 +207,12 @@ function love.keypressed(key, unicode)
         pre = pre,
         post = post,
       })
-    elseif key == 'r' or key == 'kpenter' then
+    elseif key == 'r' then
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
+    elseif key == 'kpenter' then
+      fullscreen = not fullscreen
     elseif key == 'insert' then
       clip = not clip
     elseif key == 'tab' then
@@ -250,7 +253,7 @@ function love.keypressed(key, unicode)
         local mx, my = love.mouse.getPosition()
         local rx, ry = level_renderer:rel_point(mx, my)
         print('--- ordered nodes ---')
-        local nodes = raycaster.get_ordered_nodes(map.bsp, rx, ry)
+        local nodes = raycaster.get_ordered_nodes(map.volatile.bsp, rx, ry)
         for i, node in pairs(nodes) do
           if node.is_leaf then
             print(i, node.id)
@@ -259,7 +262,7 @@ function love.keypressed(key, unicode)
           end
         end
         print('--- ordered visible nodes ---')
-        local vnodes = raycaster.get_visible_ordered_nodes(map.bsp, ray.ax, ray.ay, ray.bx, ray.by)
+        local vnodes = raycaster.get_visible_ordered_nodes(map.volatile.bsp, ray.ax, ray.ay, ray.bx, ray.by)
         e.highlight = {}
         for i, node in pairs(vnodes) do
           e.highlight[node.id] = { 'brass', 4 }
@@ -330,8 +333,7 @@ function love.keypressed(key, unicode)
     e.state = State.IDLE
   elseif e.state == State.DUMP then
     if key == 'f1' then
-      print('woe')
-      Map.print_bsp(map.bsp, 0)
+      Map.print_bsp(map.volatile.bsp, 0)
       e.state = State.IDLE
     elseif key == 'escape' then
       e.state = State.IDLE
@@ -582,7 +584,7 @@ function love.draw()
   statusbar_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
 
   if e.state == State.IC then
-    local region = raycaster.get_region_node(map.bsp, rx, ry)
+    local region = raycaster.get_region_node(map.volatile.bsp, rx, ry)
     statusbar_renderer:write('grey', 'region = {}', region.id)
     
     if region.poly ~= nil then
@@ -635,7 +637,7 @@ function love.draw()
   -- 3D View
 
   local dt = love.timer.getDelta()
-  volume_renderer:draw(map, player, dt)
+  volume_renderer:draw(map, player, dt, fullscreen)
 
   -- player controls
   if love.keyboard.isDown('a') then

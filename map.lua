@@ -38,14 +38,16 @@ function Map.new(params)
   self.splits = {}
   self.rooms = {}
   self.lights = {}
-  self.bsp = {}
+  self.volatile = {
+    bsp = {},
+    delegate = nil,
+  }
   self:update_bsp()
-  self.delegate = {}
   return self
 end
 
 function Map:set_delegate(delegate)
-  self.delegate = delegate
+  self.volatile.delegate = delegate
 end
 
 function Map:fix()
@@ -65,6 +67,12 @@ function Map:fix()
   end
   if self.lights == nil then
     self.lights = {}
+  end
+  if self.volatile == nil then
+    self.volatile = {
+      bsp = {},
+      delegate = nil,
+    }
   end
 end
 
@@ -284,6 +292,31 @@ function Map.print_bsp(node, depth)
   end
 end
 
+function update_polys(node, poly)
+  if node.is_leaf then
+    node.poly = util.deepcopy(poly)
+  else
+    local front, back = geom.splitpoly(poly, node.line)
+    update_polys(node.front, front)
+    update_polys(node.back, back)
+  end
+end
+
+function Map:generate_leaf_lookup(node)
+  if node.is_leaf then
+    self.volatile.leaves[node.id] = node
+  else
+    self:generate_leaf_lookup(node.front)
+    self:generate_leaf_lookup(node.back)
+  end
+end
+
+function Map:generate_connex_rooms_lookup()
+  for id, node in pairs(self.volatile.leaves) do
+
+  end
+end
+
 function Map:update_bsp()
   local bsp_id = 0
 
@@ -292,7 +325,7 @@ function Map:update_bsp()
     return bsp_id
   end
 
-  self.bsp = {
+  self.volatile.bsp = {
     id = bsp_id,
     is_leaf = true,
     parent = nil,
@@ -306,7 +339,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local wall = self.walls[ogid]
-    self.bsp = place_line_in_bsp(self.bsp, ogid, wall.line, next_id, false)
+    self.volatile.bsp = place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, false)
   end
 
   sorted_ids = {}
@@ -317,7 +350,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local split = self.splits[ogid]
-    self.bsp = place_line_in_bsp(self.bsp, ogid, split.line, next_id, true)
+    self.volatile.bsp = place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, true)
   end
 
   sorted_ids = {}
@@ -328,26 +361,17 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local room = self.rooms[ogid]
-    place_room_in_bsp(self.bsp, ogid, room)
+    place_room_in_bsp(self.volatile.bsp, ogid, room)
   end
 
-  update_polys(self.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
+  self.volatile.leaves = {}
+  self:generate_leaf_lookup(self.volatile.bsp)
+  update_polys(self.volatile.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
+  self.volatile.crooms = {}
+  self:generate_connex_rooms_lookup()
 
-  --print('-- BSP --')
-  --print_bsp(self.bsp, 0)
-  --print()
-  if self.delegate ~= nil then
-    self.delegate.notify('map_updated')
-  end
-end
-
-function update_polys(node, poly)
-  if node.is_leaf then
-    node.poly = util.deepcopy(poly)
-  else
-    local front, back = geom.splitpoly(poly, node.line)
-    update_polys(node.front, front)
-    update_polys(node.back, back)
+  if self.volatile.delegate ~= nil then
+    self.volatile.delegate.notify('map_updated')
   end
 end
 
