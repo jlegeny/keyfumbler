@@ -80,6 +80,8 @@ function LevelRenderer:toggle_mode(mode)
   elseif self.mode == 'bsp' then
     self.mode = 'bsp_r'
   elseif self.mode == 'bsp_r' then
+    self.mode = 'slices'
+  elseif self.mode == 'slices' then
     self.mode = 'map'
   end
 end
@@ -235,19 +237,6 @@ function LevelRenderer:draw_bsp(map, editor_state)
   self:draw_node(map.volatile.bsp, editor_state)
 end
 
-function LevelRenderer:draw_cross(rx, ry)
-  local cx, cy = self:canvas_point(rx, ry)
-
-  love.graphics.line(cx, cy - 10, cx, cy + 10)
-  love.graphics.line(cx - 10, cy, cx + 10, cy)
-
-
-  -- local rx = (math.floor((x - self.x - self.zoom_factor / 2 / self.snap) / self.zoom_factor * self.snap) - self.offset_x) / self.snap
-  local ry = (math.floor((y - self.y - self.zoom_factor / 2 / self.snap) / self.zoom_factor * self.snap) - self.offset_y) / self.snap
-  
-  return rx, ry
-end
-
 function LevelRenderer:rel_line(line)
   local rax, ray = self:rel_point(line.ax, line.ay)
   local rbx, rby = self:rel_point(line.bx, line.by)
@@ -398,7 +387,7 @@ function LevelRenderer:draw_node(node, editor_state)
 
   engyne.set_color('copperoxyde', 6)
   if not node.is_split then
-    --love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
+    love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
   end
 
   engyne.set_small_font()
@@ -438,6 +427,16 @@ end
 function LevelRenderer:draw_bsp_regions(map, editor_state)
   self:draw_bsp_polygons(map.volatile.bsp, editor_state)
 end
+
+function LevelRenderer:draw_bsp_slices(map, editor_state)
+  for id, node in pairs(map.volatile.leaves) do
+    for i, poly in ipairs(node.slices) do
+      engyne.hash_color(node.id + i, 0.3)
+      self:draw_poly(poly, 'fill')
+    end
+  end
+end
+
 
 function LevelRenderer:draw_cross(rx, ry)
   local cx, cy = self:canvas_point(rx, ry)
@@ -500,6 +499,9 @@ function LevelRenderer:draw(map, editor_state)
   elseif self.mode == 'bsp_r' then
     self:draw_bsp(map, editor_state)
     self:draw_bsp_regions(map, editor_state)
+  elseif self.mode == 'slices' then
+    self:draw_bsp(map, editor_state)
+    self:draw_bsp_slices(map)
   end
 
   self:draw_rooms(map, editor_state)
@@ -525,6 +527,9 @@ function LevelRenderer:mode_str()
   end
   if self.mode == 'bsp_r' then
     return 'BSP Regions'
+  end
+  if self.mode == 'slices' then
+    return 'Slices'
   end
   return 'Unknown'
 end

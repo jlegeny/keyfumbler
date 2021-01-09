@@ -1,5 +1,6 @@
 local map = require 'map'
 local raycaster = require 'raycaster'
+local Line = require 'line'
 
 local Player = {}
 Player.__index = Player
@@ -20,6 +21,7 @@ function Player.new()
   self.h = 1
   self.w = 0.5
   self.chin = 0
+  self.no_clip = false
 
   self.speed = 5
   self.rot_speed = math.pi
@@ -55,9 +57,11 @@ function Player:step_forward(dt, map)
   wx = math.sin(self.rot) * self.w
   wy = math.cos(self.rot) * self.w
 
-  local obstructed = self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
-  self.rx = self.rx + dx
-  self.ry = self.ry + dy
+  local obstructed = not self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
+  if not obstructed then
+    self.rx = self.rx + dx
+    self.ry = self.ry + dy
+  end
   self:update(map)
 end
 

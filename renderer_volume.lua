@@ -19,6 +19,7 @@ function VolumeRenderer.new()
   self.effect = love.graphics.newShader [[
   #pragma language glsl3
   #define PI 3.1415926538
+  #define MAX_RAD 0.000
 
   uniform float time;
 
@@ -30,12 +31,13 @@ function VolumeRenderer.new()
 
   vec4 effect(vec4 color, Image tex, vec2 texture_coords, vec2 screen_coords)
   {
-    float st = random(texture_coords + time * 0);
     float x = texture_coords.x;
     float y = texture_coords.y;
-    x += mod(st, 0.02);
-    st = random(vec2(x, st));
-    y += mod(st, 0.02);
+    float th = random(texture_coords + time) * 2 * PI;
+    float dc = sqrt(pow((x - 0.5), 2) + pow((y - 0.5), 2)) * MAX_RAD;
+    float r = random(vec2(x, th)) * dc;
+    x += sin(th) * r;
+    y += cos(th) * r;
     vec2 replace_coords = vec2(x, y);
     vec4 texturecolor = Texel(tex, replace_coords);
     float t = random(texture_coords + time * 0);
@@ -517,8 +519,10 @@ end
 function VolumeRenderer:draw(map, player, dt, fullscreen)
   self.time = self.time + dt
 
-  --self.effect:send('time', self.time)
-  --love.graphics.setShader(self.effect)
+  if fullscreen then
+    self.effect:send('time', self.time)
+    love.graphics.setShader(self.effect)
+  end
 
   if self.mode == 'photo' then
     self:draw_segments(map, player, VolumeRenderer.photo_segment_renderer)
@@ -531,9 +535,10 @@ function VolumeRenderer:draw(map, player, dt, fullscreen)
 
   love.graphics.setBlendMode('alpha', 'premultiplied')
   if fullscreen then
+    love.graphics.clear()
     local width, height = love.graphics.getDimensions()
     local mult = math.min(height / self.height, width / self.width)
-    love.graphics.draw(self.fpv, 0, 0, 0, mult, mult)
+    love.graphics.draw(self.fpv, (width - self.width * mult) / 2, 0, 0, mult, mult)
   else
     love.graphics.draw(self.fpv, self.x, self.y)
   end

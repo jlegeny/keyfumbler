@@ -61,7 +61,6 @@ statusbar_renderer = StatusBarRenderer()
 WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
 
-clip = true
 fullscreen = false
 
 local delegate = {}
@@ -115,9 +114,9 @@ function love.load()
     restore('scratch.map')
   end
 
-  e.mode = EditorMode.PROBE
-  e.probe = Probe.CONNECTIVITY
-  level_renderer.mode = 'bsp'
+  e.mode = EditorMode.DRAW
+  e.probe = Draw.WALL
+  level_renderer.mode = 'map'
 end
 
 function setup(w, h)
@@ -290,25 +289,25 @@ function love.keypressed(key, unicode)
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
       else
-        level_renderer:pan(0, 10)
+        level_renderer:pan(0, -1)
       end
     elseif key == 'up' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:prev_stat()
       else
-        level_renderer:pan(0, -10)
+        level_renderer:pan(0, 1)
       end
     elseif key == 'left' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:dec_stat()
       else
-        level_renderer:pan(-10, 0)
+        level_renderer:pan(1, 0)
       end
     elseif key == 'right' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:inc_stat()
       else
-        level_renderer:pan(10, 0)
+        level_renderer:pan(-1, 0)
       end
     elseif key == 'kp8' then
       player.chin = player.chin + 0.05
@@ -599,18 +598,24 @@ function love.draw()
 
   if e.state == State.IC then
     local region = raycaster.get_region_node(map.volatile.bsp, rx, ry)
+    if region ~= nil then
+      statusbar_renderer:write('grey', 'region = {} up = {}', region.id, region.up)
+      local room = map:room_node(region)
+      if room then
+        info_renderer:write('grey', 'room_id = {}', room.room_id)
+      end
+    end
     if region ~= nil and e.mode == EditorMode.PROBE then
+      e.highlight = {}
       if e.probe == Probe.CONNECTIVITY then
         e.highlight = { [region.id] = { 'green', 33 } }
-        statusbar_renderer:write('grey', 'region = {}', region.id)
 
-        if region.poly ~= nil then
+        if region.poly and region.slices then
           for i, p in ipairs(region.poly) do
             info_renderer:write('grey', 'p{} {},{}', i, p[1], p[2])
           end
           --level_renderer:draw_poly(region.poly, {'red'})
-          local poly = region.poly
-          if #poly > 2 then
+          for _, poly in ipairs(region.slices) do
             for i = 1, #poly do
               local j = (i % #poly) + 1
               local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
@@ -619,7 +624,10 @@ function love.draw()
               local PROBE_SIZE = 0.5
               local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
               local other = raycaster.get_region_node(map.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
-              if not raycaster.is_cut_by_any_line(map, probe) then
+              if region.id == other.id then
+                e.highlight[other.id] = { 'blue', 33 }
+                engyne.set_color('blue')
+              elseif not raycaster.is_cut_by_any_line(map, probe) then
                 e.highlight[other.id] = { 'fuchsia', 33 }
                 engyne.set_color('green')
               else
@@ -678,6 +686,8 @@ function love.draw()
     item_renderer:draw(map, e)
   end
 
+  statusbar_renderer:draw(e, mx, my, rx, ry)
+
   -- 3D View
 
   local dt = love.timer.getDelta()
@@ -695,7 +705,5 @@ function love.draw()
   elseif love.keyboard.isDown('s') then
     player:step_backward(dt, map)
   end
-
-  statusbar_renderer:draw(e, mx, my, rx, ry)
 end
 

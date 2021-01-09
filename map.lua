@@ -257,18 +257,23 @@ function Map:place_line_in_bsp(node, ogid, line, next_id, is_split)
   end
 end
 
-function place_room_in_bsp(node, ogid, room)
+function Map:room_node(node)
+  return self.volatile.leaves[self:room_root(node)]
+end
+
+function Map:place_room_in_bsp(node, ogid, room)
   if node.is_leaf then
-    node.room_id = ogid
-    node.ceiling_height = room.ceiling_height
-    node.floor_height = room.floor_height
-    node.ambient_light = room.ambient_light
+    local room_node = self:room_node(node)
+    room_node.room_id = ogid
+    room_node.ceiling_height = room.ceiling_height
+    room_node.floor_height = room.floor_height
+    room_node.ambient_light = room.ambient_light
   else
     local dot = Line.fast_dot(node.line, room.x, room.y)
     if dot < 0 then
-      place_room_in_bsp(node.back, ogid, room)
+      self:place_room_in_bsp(node.back, ogid, room)
     else
-      place_room_in_bsp(node.front, ogid, room)
+      self:place_room_in_bsp(node.front, ogid, room)
     end
   end
 end
@@ -317,6 +322,32 @@ function update_polys(node, poly)
   end
 end
 
+function chop_chop(polys, line)
+  local res = {}
+  for _, poly in ipairs(polys) do
+    local front, back = geom.splitpoly(poly, line)
+    if #front > 2 then
+      table.insert(res, front)
+    end
+    if #back > 2 then
+      table.insert(res, back)
+    end
+  end
+  return res
+end
+
+function Map:slice_and_dice()
+  for id, node in pairs(self.volatile.leaves) do
+    node.slices = { node.poly }
+    for _, wall in pairs(self.walls) do
+      node.slices = chop_chop(node.slices, wall.line)
+    end
+    for _, split in pairs(self.splits) do
+      node.slices = chop_chop(node.slices, split.line)
+    end
+  end
+end
+
 function Map:room_root(node)
   if node.up == node.id then
     return node.id
@@ -339,18 +370,17 @@ function Map:annotate_connex_rooms()
   for id, node in pairs(self.volatile.leaves) do
     local root = self:room_root(node)
 
-    local poly = node.poly
-    if poly and #poly > 2 then
-      for i = 1, #poly do
-        local j = (i % #poly) + 1
-        local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
-        local nx, ny = line:norm_vector()
-        local midx, midy = line:mid()
-        local PROBE_SIZE = 1
-        local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
-        if not raycaster.is_cut_by_any_line(self, probe) then
+    for _, poly in ipairs(node.slices) do
+      if #poly > 2 then
+        for i = 1, #poly do
+          local j = (i % #poly) + 1
+          local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
+          local nx, ny = line:norm_vector()
+          local midx, midy = line:mid()
+          local PROBE_SIZE = 0.1
+          local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
           local other = raycaster.get_region_node(self.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
-          if #other.poly > 2 then
+          if id ~= other.id and not raycaster.is_cut_by_any_line(self, probe) then
             self:room_union(node, other)
           end
         end
@@ -403,14 +433,15 @@ function Map:update_bsp()
   end
   table.sort(sorted_ids)
 
-  for i, ogid in ipairs(sorted_ids) do
-    local room = self.rooms[ogid]
-    place_room_in_bsp(self.volatile.bsp, ogid, room)
-  end
-
   update_polys(self.volatile.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
+  self:slice_and_dice()
 
   self:annotate_connex_rooms()
+
+  for i, ogid in ipairs(sorted_ids) do
+    local room = self.rooms[ogid]
+    self:place_room_in_bsp(self.volatile.bsp, ogid, room)
+  end
 
   if self.volatile.delegate ~= nil then
     self.volatile.delegate.notify('map_updated')
