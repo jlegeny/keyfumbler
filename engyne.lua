@@ -20,26 +20,51 @@ function get_color(min, max, intensity)
   return {min[1] + dr * step, min[2] + dg * step, min[3] + dg * step}
 end
 
-engyne.set_color = function(color, intensity)
-  if intensity == nil then
-    intensity = 4
+engyne.set_editor_color = function(color, opacity)
+  if opacity == nil then
+    opacity = 100
   end
 
   local c = {1, 0, 1}
+  local a = opacity / 100
 
   if color == 'red' then
     c = { 1, 0, 0 }
   elseif color == 'green' then
     c = { 0, 1, 0 }
-  elseif color == 'darkgrey' then
-    c = palette['grey'][intensity * 4 + 1]
-  elseif color == 'lightgrey' then
-    c = palette['grey'][intensity * 4 + 31]
-  elseif palette[color] == nil then
-    print('Unknown color "', color, '"')
-    love.event.quit(1)
+  elseif color == 'fuchsia' then
+    c = { 1, 0, 1 }
+  elseif color == 'blue' then
+    c = { 0, 0.3, 1 }
+   else
+    return false
+  end
+
+  love.graphics.setColor(c[1], c[2], c[3], a)
+  return true
+end
+
+engyne.set_color = function(color, intensity)
+  local int = intensity
+  if int == nil then
+    int = 4
+  end
+
+  local c = {1, 0, 1}
+
+  if palette[color] == nil then
+    if color == 'darkgrey' then
+      c = palette['grey'][int * 4 + 1]
+    elseif color == 'lightgrey' then
+      c = palette['grey'][int * 4 + 31]
+    elseif engyne.set_editor_color(color, intensity) then
+      return
+    else
+      print('Unknown color "', color, '"')
+      love.event.quit(1)
+    end
   else
-    c = palette[color][intensity]
+    c = palette[color][int]
   end
 
   love.graphics.setColor(c[1], c[2], c[3], 1)

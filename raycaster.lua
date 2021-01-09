@@ -89,6 +89,29 @@ RayCaster.is_cut_by_wall = function(map, line)
   return Line.fast_dot(map.walls[lc.id].line, line.bx, line.by) < -0.001
 end
 
+RayCaster.is_cut_by_any_line = function(map, line)
+  local minx = math.min(line.ax, line.bx) - INTERSECT_TOLERANCE
+  local miny = math.min(line.ay, line.by) - INTERSECT_TOLERANCE
+  local maxx = math.max(line.ax, line.bx) + INTERSECT_TOLERANCE
+  local maxy = math.max(line.ay, line.by) + INTERSECT_TOLERANCE
+
+  local collisions = RayCaster.fast_collisions(map, line)
+  for _, c in ipairs(collisions) do
+    if c.x >= minx and c.x <= maxx and c.y >= miny and c.y <= maxy then
+      return true
+    end
+  end
+
+  local collisions = RayCaster.fast_collisions(map, lines.swapped(line))
+  for _, c in ipairs(collisions) do
+    if c.x >= minx and c.x <= maxx and c.y >= miny and c.y <= maxy then
+      return true
+    end
+  end
+
+  return false
+end
+
 
 RayCaster.light_at = function(map, x, y)
   local l = 0

@@ -70,6 +70,14 @@ geom.splitpoly = function(poly, line)
     end
   end
 
+  if polya[1][1] == polya[#polya][1] and polya[1][2] == polya[#polya][2] then
+    table.remove(polya, #polya)
+  end
+  if polyb[1][1] == polyb[#polyb][1] and polyb[1][2] == polyb[#polyb][2] then    
+    table.remove(polyb, #polyb)
+  end
+
+
   return polya, polyb
 end
 

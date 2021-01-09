@@ -235,45 +235,6 @@ function LevelRenderer:draw_bsp(map, editor_state)
   self:draw_node(map.volatile.bsp, editor_state)
 end
 
-function LevelRenderer:draw_bsp_regions(map, editor_state)
-  local dots = {} 
-
-  local y = 0
-  while y < self.height do
-    local x = 0
-    while x < self.width do
-      local rx, ry = self:rel_point(x + self.x, y + self.y)
-      local region_id = raycaster.get_region_id(map.volatile.bsp, rx, ry)
-  
-      local cx, cy = self:canvas_point(rx, ry)
-
-      if dots[region_id] == nil then
-        dots[region_id] = {}
-      end
-
-      table.insert(dots[region_id], cx)
-      table.insert(dots[region_id], cy)
-      x = x + 0.250
-    end
-    y = y + 0.250
-  end
-
-  for region_id, dts in pairs(dots) do 
-    local hl = editor_state.highlight[region_id]
-    if self.mode == 'bsp_r' then
-      if hl ~= nil then
-        engyne.set_color(hl[1], hl[2])
-      else
-        engyne.hash_color(region_id)
-      end
-      love.graphics.points(dts)
-    elseif hl ~= nil then
-      engyne.set_color(hl[1], hl[2])
-      love.graphics.points(dts)
-    end
-  end
-end
-
 function LevelRenderer:draw_cross(rx, ry)
   local cx, cy = self:canvas_point(rx, ry)
 
@@ -437,7 +398,7 @@ function LevelRenderer:draw_node(node, editor_state)
 
   engyne.set_color('copperoxyde', 6)
   if not node.is_split then
-    love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
+    --love.graphics.line(mid_cx, mid_cy, mid_cx + node.norm_x * 5, mid_cy + node.norm_y * 5)
   end
 
   engyne.set_small_font()
@@ -466,6 +427,7 @@ function LevelRenderer:draw_bsp_polygons(node, editor_state)
     if hl ~= nil then
       engyne.set_color(hl[1], hl[2])
       self:draw_poly(node.poly, 'line')
+      --self:draw_poly_normals(node.poly)
     end
   else
     self:draw_bsp_polygons(node.front, editor_state)
@@ -513,6 +475,20 @@ function LevelRenderer:draw_poly(poly, mode)
   end
   love.graphics.polygon(mode, vertices)
 end
+
+function LevelRenderer:draw_poly_normals(poly)
+  if #poly < 2 then
+    return
+  end
+  for i = 1, #poly do
+    local j = (i % #poly) + 1
+    local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
+    local nx, ny = line:norm_vector()
+    local midx, midy = line:mid()
+    self:draw_line(Line(midx, midy, midx + nx, midy + ny))
+  end
+end
+
 
 function LevelRenderer:draw(map, editor_state)
   love.graphics.setScissor(self.x, self.y, self.width, self.height)

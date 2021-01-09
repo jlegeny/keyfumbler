@@ -114,6 +114,10 @@ function love.load()
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
   end
+
+  e.mode = EditorMode.PROBE
+  e.probe = Probe.CONNECTIVITY
+  level_renderer.mode = 'bsp'
 end
 
 function setup(w, h)
@@ -386,8 +390,11 @@ function love.mousepressed(mx, my, button, istouch)
         if e.probe == Probe.VISIBILITY then
           e.state = State.IC_DRAWING_VISIBILITY
           e.current_rline = Line(rx, ry, rx, ry)
-        end
-      end
+        elseif e.probe == Probe.CONNECTIVITY then
+          e.state = State.IC_DRAWING_CONNECTIVITY
+          e.current_rline = Line(rx, ry, rx, ry)
+         end
+       end
     elseif button == 2 then
       e.state = State.IC_DRAWING_SELECTION
       e.selection_line_r = Line(rx, ry, rx, ry)
@@ -508,7 +515,7 @@ function love.draw()
       e.state = State.IDLE
     end
   elseif e.state == State.IC_DRAWING_WALL_NORMAL then
-  elseif e.state == State.IC_DRAWING_VISIBILITY then
+  elseif e.state == State.IC_DRAWING_VISIBILITY or e.state == State.IC_DRAWING_CONNECTIVITY then
     if love.mouse.isDown(1) then
       e.current_rline.bx = rx
       e.current_rline.by = ry
@@ -566,8 +573,15 @@ function love.draw()
     level_renderer:draw_rectangle(e.selection_line_r)
   end
 
-  if e.state == State.IC_DRAWING_VISIBILITY then
-    local obstructed = raycaster.is_cut_by_wall(map, e.current_rline)
+  if e.state == State.IC_DRAWING_VISIBILITY or e.state == State.IC_DRAWING_CONNECTIVITY then
+    local obstructed
+
+    if e.state == State.IC_DRAWING_VISIBILITY then
+      obstructed = raycaster.is_cut_by_wall(map, e.current_rline)
+    elseif e.state == State.IC_DRAWING_CONNECTIVITY then
+      obstructed = raycaster.is_cut_by_any_line(map, e.current_rline)
+    end
+
     if obstructed then
       engyne.set_color('red')
     else
@@ -585,17 +599,47 @@ function love.draw()
 
   if e.state == State.IC then
     local region = raycaster.get_region_node(map.volatile.bsp, rx, ry)
-    statusbar_renderer:write('grey', 'region = {}', region.id)
-    
-    if region.poly ~= nil then
-      for i, p in ipairs(region.poly) do
-        info_renderer:write('grey', 'p{} {},{}', i, p[1], p[2])
-      end
-      --level_renderer:draw_poly(region.poly, {'red'})
-    end
+    if region ~= nil and e.mode == EditorMode.PROBE then
+      if e.probe == Probe.CONNECTIVITY then
+        e.highlight = { [region.id] = { 'green', 33 } }
+        statusbar_renderer:write('grey', 'region = {}', region.id)
 
-    e.highlight = { [region.id] = { 'red' } }
-    if e.mode == EditorMode.PROBE then
+        if region.poly ~= nil then
+          for i, p in ipairs(region.poly) do
+            info_renderer:write('grey', 'p{} {},{}', i, p[1], p[2])
+          end
+          --level_renderer:draw_poly(region.poly, {'red'})
+          local poly = region.poly
+          if #poly > 2 then
+            for i = 1, #poly do
+              local j = (i % #poly) + 1
+              local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
+              local nx, ny = line:norm_vector()
+              local midx, midy = line:mid()
+              local PROBE_SIZE = 0.5
+              local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
+              local other = raycaster.get_region_node(map.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
+              if not raycaster.is_cut_by_any_line(map, probe) then
+                e.highlight[other.id] = { 'fuchsia', 33 }
+                engyne.set_color('green')
+              else
+                engyne.set_color('red')
+                e.highlight[other.id] = { 'blue', 33 }
+              end
+              level_renderer:draw_line(probe)
+            end
+          end
+        end
+
+        if map.volatile.leaves ~= nil and map.volatile.leaves[region.id] ~= nil then
+          local acth = e.highlight[map:room_root(region)]
+          if acth == nil then
+            e.highlight[map:room_root(region)] = { 'red', 50 }
+          else
+            e.highlight[map:room_root(region)] = { acth[1], 100 }
+          end
+        end
+      end
       if e.probe == Probe.REGION_PARENT_SUBTREE then
         if region.parent ~= nil then
           local fronttree = raycaster.get_subtree_ids(region.parent.front)

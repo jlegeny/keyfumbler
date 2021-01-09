@@ -8,6 +8,7 @@ State = {
   IC_DRAWING_SELECTION = 103,
   IC_DRAWING_SPLIT = 104,
   IC_DRAWING_VISIBILITY = 105,
+  IC_DRAWING_CONNECTIVITY = 106,
 }
 
 EditorMode = {
@@ -27,6 +28,7 @@ Probe = {
   REGION_PARENT_SUBTREE = 0,
   REGION_ANCESTORS = 1,
   VISIBILITY = 2,
+  CONNECTIVITY = 3,
 }
 
 Sidebar = {
@@ -138,6 +140,8 @@ function EditorState:toggle_probe()
   elseif self.probe == Probe.REGION_PARENT_SUBTREE then
     self.probe = Probe.VISIBILITY
   elseif self.probe == Probe.VISIBILITY then
+    self.probe = Probe.CONNECTIVITY
+  elseif self.probe == Probe.CONNECTIVITY then
     self.probe = Probe.REGION_ANCESTORS
   end
 end
@@ -161,7 +165,9 @@ function EditorState:state_str()
     return "Drawing Split"
   elseif self.state == State.IC_DRAWING_VISIBILITY then
     return "Probing Visibility"
-  else
+  elseif self.state == State.IC_DRAWING_CONNECTIVITY then
+    return "Probing Connectivity"
+   else
     return "Unknown State"
   end
 end
@@ -185,6 +191,8 @@ function EditorState:probe_str()
     return 'RA'
   elseif self.probe == Probe.VISIBILITY then
     return 'VIS'
+  elseif self.probe == Probe.CONNECTIVITY then
+    return 'CON'
   else
     return 'Unknown Probe'
   end

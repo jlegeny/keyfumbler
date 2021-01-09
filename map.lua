@@ -5,6 +5,7 @@ local Light = require 'light'
 local lines = require 'lines'
 local Line = require 'line'
 local Wall = require 'wall'
+local raycaster = require 'raycaster'
 
 local EPSILON = 0.001
 
@@ -40,6 +41,7 @@ function Map.new(params)
   self.lights = {}
   self.volatile = {
     bsp = {},
+    leaves = {},
     delegate = nil,
   }
   self:update_bsp()
@@ -71,6 +73,7 @@ function Map:fix()
   if self.volatile == nil then
     self.volatile = {
       bsp = {},
+      leaves = {},
       delegate = nil,
     }
   end
@@ -203,7 +206,7 @@ function Map:bound_objects_set(rect)
   return objects
 end
 
-function place_line_in_bsp(node, ogid, line, next_id, is_split)
+function Map:place_line_in_bsp(node, ogid, line, next_id, is_split)
   if node.is_leaf then
     local norm_x, norm_y = Line.norm_vector(line)
     local new_node = {
@@ -214,33 +217,41 @@ function place_line_in_bsp(node, ogid, line, next_id, is_split)
       norm_x = norm_x,
       norm_y = norm_y,
       is_split = is_split,
+      up = id,
     }
+    local fid = next_id()
     local front = {
       is_leaf = true,
-      id = next_id(),
+      id = fid,
       parent = new_node,
+      up = fid,
     }
+    local bid = next_id()
     local back = {
       is_leaf = true,
-      id = next_id(),
+      id = bid,
       parent = new_node,
+      up = bid,
     }
     new_node.front = front
     new_node.back = back
+    self.volatile.leaves[fid] = front
+    self.volatile.leaves[bid] = back
+    self.volatile.leaves[node.id] = nil
     return new_node
   else
     local dota = Line.fast_dot(node.line, line.ax, line.ay)
     local dotb = Line.fast_dot(node.line, line.bx, line.by)
     if dota < EPSILON and dotb < EPSILON then
-      node.back = place_line_in_bsp(node.back, ogid, line, next_id, is_split)
+      node.back = self:place_line_in_bsp(node.back, ogid, line, next_id, is_split)
     elseif dota > -EPSILON and dotb > -EPSILON then
-      node.front = place_line_in_bsp(node.front, ogid, line, next_id, is_split)
+      node.front = self:place_line_in_bsp(node.front, ogid, line, next_id, is_split)
     else
       local sx, sy = lines.intersection(line, node.line)
       local split1 = Line(line.ax, line.ay, sx, sy)
       local split2 = Line(sx, sy, line.bx, line.by)
-      node = place_line_in_bsp(node, ogid, split1, next_id, is_split)
-      node = place_line_in_bsp(node, ogid, split2, next_id, is_split)
+      node = self:place_line_in_bsp(node, ogid, split1, next_id, is_split)
+      node = self:place_line_in_bsp(node, ogid, split2, next_id, is_split)
     end
     return node
   end
@@ -278,7 +289,11 @@ function Map.print_bsp(node, depth)
     if node.room_id ~= nil then
       room_str = node.room_id
     end
-    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. room_str
+    local up_str = 'nil'
+    if node.up ~= nil then
+      up_str = node.up
+    end
+    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. room_str .. ' up ' .. up_str
     print(str)
   else
     if node.is_split then
@@ -302,18 +317,45 @@ function update_polys(node, poly)
   end
 end
 
-function Map:generate_leaf_lookup(node)
-  if node.is_leaf then
-    self.volatile.leaves[node.id] = node
-  else
-    self:generate_leaf_lookup(node.front)
-    self:generate_leaf_lookup(node.back)
+function Map:room_root(node)
+  if node.up == node.id then
+    return node.id
   end
+
+  local up_node = self.volatile.leaves[node.up]
+  if up_node.up == up_node.id then
+    return up_node.id
+  end
+
+  node.up = up_node.up
+  return self:room_root(up_node)
 end
 
-function Map:generate_connex_rooms_lookup()
-  for id, node in pairs(self.volatile.leaves) do
+function Map:room_union(rnode, lnode)
+  rnode.up = lnode.id
+end
 
+function Map:annotate_connex_rooms()
+  for id, node in pairs(self.volatile.leaves) do
+    local root = self:room_root(node)
+
+    local poly = node.poly
+    if poly and #poly > 2 then
+      for i = 1, #poly do
+        local j = (i % #poly) + 1
+        local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
+        local nx, ny = line:norm_vector()
+        local midx, midy = line:mid()
+        local PROBE_SIZE = 1
+        local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
+        if not raycaster.is_cut_by_any_line(self, probe) then
+          local other = raycaster.get_region_node(self.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
+          if #other.poly > 2 then
+            self:room_union(node, other)
+          end
+        end
+      end
+    end
   end
 end
 
@@ -329,7 +371,9 @@ function Map:update_bsp()
     id = bsp_id,
     is_leaf = true,
     parent = nil,
+    up = bsp_id,
   }
+  self.volatile.leaves = {}
 
   local sorted_ids = {}
   for k, _ in pairs(self.walls) do
@@ -339,7 +383,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local wall = self.walls[ogid]
-    self.volatile.bsp = place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, false)
+    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, false)
   end
 
   sorted_ids = {}
@@ -350,7 +394,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local split = self.splits[ogid]
-    self.volatile.bsp = place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, true)
+    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, true)
   end
 
   sorted_ids = {}
@@ -364,11 +408,9 @@ function Map:update_bsp()
     place_room_in_bsp(self.volatile.bsp, ogid, room)
   end
 
-  self.volatile.leaves = {}
-  self:generate_leaf_lookup(self.volatile.bsp)
   update_polys(self.volatile.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
-  self.volatile.crooms = {}
-  self:generate_connex_rooms_lookup()
+
+  self:annotate_connex_rooms()
 
   if self.volatile.delegate ~= nil then
     self.volatile.delegate.notify('map_updated')
