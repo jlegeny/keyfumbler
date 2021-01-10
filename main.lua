@@ -74,6 +74,10 @@ delegate.notify = function(event)
   end
 end
 
+delegate.image_name = function(index)
+  return image_names[index]
+end
+
 delegate.image_data = function()
   return image_data
 end
@@ -114,6 +118,7 @@ function love.load()
   for i, name in ipairs(image_names) do
     local texture = love.image.newImageData('assets/${name}.png' % { name = name })
     image_data[name] = {
+      index = i,
       texture = texture,
       height = texture:getHeight(),
       width = texture:getWidth(),
@@ -162,7 +167,7 @@ function setup(w, h)
   local level_h = h - bb_h - 3 * pad
 
   level_renderer:setup(pad, pad, level_w, level_h)
-  volume_renderer:setup(sb_x, pad , volume_w, volume_h)
+  volume_renderer:setup(sb_x, pad , volume_w, volume_h, image_data)
 
   tabs_renderer:setup(sb_x, tabs_y, sb_w, tabs_h)
 

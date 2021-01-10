@@ -51,12 +51,14 @@ function VolumeRenderer.new()
   return self
 end
 
-function VolumeRenderer:setup(x, y, width, height)
+function VolumeRenderer:setup(x, y, width, height, textures)
   self.x = x
   self.y = y
   self.mode = 'photo'
   self.width = width
   self.height = height
+  self.textures = textures
+
   self.canvas = love.graphics.newCanvas(self.width, self.height)
   self.fpv = love.graphics.newCanvas(self.width, self.height)
   self.fpv:setFilter("nearest", "nearest")
@@ -272,6 +274,30 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
     local bottom = self.height * (s.bottom + 1) / 2
 
     love.graphics.line(ox, oy + top, ox, oy + bottom)
+    if s.decals then
+      love.graphics.setBlendMode('replace', 'premultiplied')
+      for _, decal in ipairs(s.decals) do
+        local rtop = self.height * (s.ceiling_bottom + 1) / 2
+        local rbottom = self.height * (s.floor_top + 1) / 2
+        local h = rbottom - rtop
+        local dtop = math.floor(rtop + h * decal.y)
+        local dbottom = math.floor(rtop + h * (decal.y + decal.height))
+        local texture = self.textures[decal.name]
+        for i = dtop, dbottom do
+          local tx = decal.posx * (texture.width - 1)
+          local ty = (i - dtop) / (dbottom - dtop) * (texture.height - 1)
+          local r, g, b, a = texture.texture:getPixel(tx, ty)
+          local lum = wall_color / 62
+          love.graphics.setColor(r * lum, g * lum, b * lum, a)
+          if a > 0 then
+            love.graphics.points(
+            ox, oy + i
+            )
+          end
+        end
+      end
+      love.graphics.setBlendMode('alpha')
+    end
   else
     local far_illumination = ((s.ambient_light + s.dynamic_light) / 64)
     local far_light = math.min(far_illumination * 1 / (math.sqrt(s.dist / 2)), 1)
@@ -476,6 +502,9 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           ambient_light = cc.ambient_light,
           dynamic_light = cc.dynamic_light,
           prev_dynamic_light = prev_dynamic_light,
+          decals = cc.decals,
+          floor_top = floor_top,
+          ceiling_bottom = ceiling_bottom,
         })
       end
 
@@ -519,11 +548,7 @@ end
 function VolumeRenderer:draw(map, player, dt, fullscreen)
   self.time = self.time + dt
 
-  if fullscreen then
-    self.effect:send('time', self.time)
-    love.graphics.setShader(self.effect)
-  end
-
+  love.graphics.setBlendMode('alpha', 'premultiplied')
   if self.mode == 'photo' then
     self:draw_segments(map, player, VolumeRenderer.photo_segment_renderer)
   elseif self.mode == 'surface' then
@@ -533,7 +558,12 @@ function VolumeRenderer:draw(map, player, dt, fullscreen)
   end
   engyne.reset_color()
 
-  love.graphics.setBlendMode('alpha', 'premultiplied')
+  if fullscreen then
+    self.effect:send('time', self.time)
+    love.graphics.setShader(self.effect)
+  end
+
+
   if fullscreen then
     love.graphics.clear()
     local width, height = love.graphics.getDimensions()

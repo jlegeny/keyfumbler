@@ -121,7 +121,7 @@ function ItemRenderer:draw(map, editor_state)
         local image_name = 'missing'
         local image_data = self.delegate.image_data()[image_name]
         table.insert(self.obj.decals, Decal(
-        image_name, 0, 0, image_data.width, image_data.height
+        image_name, 0, 0, 1, 1
         ))
       end
       if self._stat_mod == -1 and #self.obj.decals > 0 then
@@ -132,6 +132,9 @@ function ItemRenderer:draw(map, editor_state)
 
     for i, decal in ipairs(self.obj.decals) do
       if self.selected == self._stat_n then
+        local ni = self.delegate.image_data()[decal.name].index
+        ni = (((ni - 1) + self._stat_mod) % 2) + 1
+        decal.name = self.delegate.image_name(ni)
       end
       self:print_stat('[${i}]:' % {i = i}, decal.name, 'name')
       if self.selected == self._stat_n then
@@ -143,11 +146,11 @@ function ItemRenderer:draw(map, editor_state)
       end
       self:print_stat('  y:', decal.y, 'ratio')
       if self.selected == self._stat_n then
-        decal.width = decal.width + self._stat_mod
+        decal.width = decal.width + self._stat_mod * 0.1
       end
       self:print_stat('  w:', decal.width, 'ratio')
       if self.selected == self._stat_n then
-        decal.height = decal.height + self._stat_mod
+        decal.height = decal.height + self._stat_mod * 0.1
       end
       self:print_stat('  h:', decal.height, 'ratio')
     end

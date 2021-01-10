@@ -69,6 +69,29 @@ RayCaster.fast_collisions = function(map, vector)
         lx = int_x
         ly = int_y
         if not node.is_split then
+          local wall = map.walls[node.ogid]
+          if wall and #wall.decals > 0 then
+            local cdec = {}
+            local spanx = node.line.bx - node.line.ax
+            local spany = node.line.by - node.line.ay
+            local posx
+            if spanx > spany then
+              posx = (int_x - node.line.ax) / spanx
+            else
+              posx = (int_y - node.line.ay) / spany
+            end
+            for _, decal in ipairs(wall.decals) do
+              if posx > decal.x and posx < decal.x + decal.width then
+                table.insert(cdec, {
+                  name = decal.name,
+                  posx = (posx - decal.x) / decal.width,
+                  y = decal.y,
+                  height = decal.height,
+                })
+              end
+            end
+            collisions[#collisions].decals = cdec
+          end
           return collisions
         end
       end
