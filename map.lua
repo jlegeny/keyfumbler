@@ -56,6 +56,11 @@ function Map:fix()
   if self.walls == nil then
     self.walls = {}
   end
+  for _, w in pairs(self.walls) do
+    if w.decals == nil then
+      w.decals = {}
+    end
+  end
   if self.rooms == nil then
     self.rooms = {}
   end

@@ -19,7 +19,7 @@ function VolumeRenderer.new()
   self.effect = love.graphics.newShader [[
   #pragma language glsl3
   #define PI 3.1415926538
-  #define MAX_RAD 0.000
+  #define MAX_RAD 0.005
 
   uniform float time;
 

@@ -41,6 +41,8 @@ Operation = {
 
 e = EditorState()
 
+image_names = {'missing', 'painting-01'}
+image_data = {}
 map = Map({ next_id = 1 })
 player = Player()
 player.rx = 50
@@ -70,6 +72,10 @@ delegate.notify = function(event)
   elseif event == 'map_updated' then
     volume_renderer:invalidate_light_cache()
   end
+end
+
+delegate.image_data = function()
+  return image_data
 end
 
 -- FUNCTIONS
@@ -105,10 +111,18 @@ function love.load()
   love.window.setTitle("Engyne Edytor")
   love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = false, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
 
+  for i, name in ipairs(image_names) do
+    local texture = love.image.newImageData('assets/${name}.png' % { name = name })
+    image_data[name] = {
+      texture = texture,
+      height = texture:getHeight(),
+      width = texture:getWidth(),
+    }
+  end
+
   -- fonts
   engyne.set_default_font()
 
-  setup(WINDOW_WIDTH, WINDOW_HEIGHT)
 
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
@@ -116,7 +130,13 @@ function love.load()
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
+  level_renderer.zoom_factor = 30
+  level_renderer.offset_x = -40
+  level_renderer.offset_y = -40
+  level_renderer.snap = 2
   level_renderer.mode = 'map'
+
+  setup(WINDOW_WIDTH, WINDOW_HEIGHT)
 end
 
 function setup(w, h)
@@ -140,8 +160,6 @@ function setup(w, h)
 
   local level_w = w - sb_w - 3 * pad
   local level_h = h - bb_h - 3 * pad
-
-
 
   level_renderer:setup(pad, pad, level_w, level_h)
   volume_renderer:setup(sb_x, pad , volume_w, volume_h)
@@ -288,26 +306,18 @@ function love.keypressed(key, unicode)
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
-      else
-        level_renderer:pan(0, -1)
       end
     elseif key == 'up' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:prev_stat()
-      else
-        level_renderer:pan(0, 1)
       end
     elseif key == 'left' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:dec_stat()
-      else
-        level_renderer:pan(1, 0)
       end
     elseif key == 'right' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:inc_stat()
-      else
-        level_renderer:pan(-1, 0)
       end
     elseif key == 'kp8' then
       player.chin = player.chin + 0.05
@@ -687,6 +697,25 @@ function love.draw()
   end
 
   statusbar_renderer:draw(e, mx, my, rx, ry)
+
+  -- Panning
+  
+
+  if e.sidebar ~= Sidebar.ITEM then
+    if love.keyboard.isDown('down') then
+      level_renderer:pan(0, -1)
+    end
+    if love.keyboard.isDown('up') then
+      level_renderer:pan(0, 1)
+    end
+    if love.keyboard.isDown('left') then
+      level_renderer:pan(1, 0)
+    end
+    if love.keyboard.isDown('right') then
+      level_renderer:pan(-1, 0)
+    end
+  end
+
 
   -- 3D View
 

@@ -1,4 +1,5 @@
 local engyne = require 'engyne'
+local Decal = require 'decal'
 
 local ItemRenderer = {}
 ItemRenderer.__index = ItemRenderer
@@ -114,6 +115,42 @@ function ItemRenderer:draw(map, editor_state)
   if self.kind == 'wall' then
     engyne.set_color('lightgrey', 7)
     love.graphics.print('selected wall ${id}' % { id = self.id }, self.x, self.y)
+
+    if self.delegate and self.selected == self._stat_n then
+      if self._stat_mod == 1 then
+        local image_name = 'missing'
+        local image_data = self.delegate.image_data()[image_name]
+        table.insert(self.obj.decals, Decal(
+        image_name, 0, 0, image_data.width, image_data.height
+        ))
+      end
+      if self._stat_mod == -1 and #self.obj.decals > 0 then
+        table.remove(self.obj.decals, #self.obj.decals)
+      end
+    end
+    self:print_stat('decals', #self.obj.decals, 'count')
+
+    for i, decal in ipairs(self.obj.decals) do
+      if self.selected == self._stat_n then
+      end
+      self:print_stat('[${i}]:' % {i = i}, decal.name, 'name')
+      if self.selected == self._stat_n then
+        decal.x = decal.x + self._stat_mod * 0.1
+      end
+      self:print_stat('  x:', decal.x, 'ratio')
+      if self.selected == self._stat_n then
+        decal.y = decal.y + self._stat_mod * 0.1
+      end
+      self:print_stat('  y:', decal.y, 'ratio')
+      if self.selected == self._stat_n then
+        decal.width = decal.width + self._stat_mod
+      end
+      self:print_stat('  w:', decal.width, 'ratio')
+      if self.selected == self._stat_n then
+        decal.height = decal.height + self._stat_mod
+      end
+      self:print_stat('  h:', decal.height, 'ratio')
+    end
   end
 
   if self.kind == 'room' then

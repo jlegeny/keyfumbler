@@ -45,6 +45,10 @@ end
 
 function LevelRenderer:zoom_in()
   self.zoom_factor = self.zoom_factor + 1
+  local offs_x = math.floor(self.width / self.zoom_factor - self.width / (self.zoom_factor + 1))
+  local offs_y = math.floor(self.height / self.zoom_factor - self.height / (self.zoom_factor + 1))
+  self.offset_x = self.offset_x - offs_x
+  self.offset_y = self.offset_y - offs_y
   if self.zoom_factor < 15 then
     self.snap = 1
   else
@@ -55,7 +59,11 @@ end
 
 function LevelRenderer:zoom_out()
   self.zoom_factor = self.zoom_factor - 1
-  self.snap = 1
+  local offs_x = math.floor(self.width / (self.zoom_factor - 1) - self.width / self.zoom_factor)
+  local offs_y = math.floor(self.height / (self.zoom_factor - 1)- self.height / self.zoom_factor)
+  self.offset_x = self.offset_x + offs_x
+  self.offset_y = self.offset_y + offs_y
+   self.snap = 1
   if self.zoom_factor < 15 then
     self.snap = 1
   else

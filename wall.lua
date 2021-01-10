@@ -17,6 +17,7 @@ function Wall.new(line)
   self.norm_x, self.norm_y = Line.norm_vector(line)
   self.mid_x = (line.ax + line.bx) / 2
   self.mid_y = (line.ay + line.by) / 2
+  self.decals = {}
   return self
 end
 
