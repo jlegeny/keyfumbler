@@ -39,6 +39,7 @@ function Map.new(params)
   self.splits = {}
   self.rooms = {}
   self.lights = {}
+  self.things = {}
   self.volatile = {
     bsp = {},
     leaves = {},
@@ -75,6 +76,9 @@ function Map:fix()
   if self.lights == nil then
     self.lights = {}
   end
+  if self.things == nil then
+    self.things = {}
+  end
   if self.volatile == nil then
     self.volatile = {
       bsp = {},
@@ -89,6 +93,8 @@ function Map:from(other)
   self.walls = other.walls
   self.rooms = other.rooms
   self.splits = other.splits
+  self.lights = other.lights
+  self.things = other.things
 end
 
 function Map:add_wall(id, wall)
@@ -101,32 +107,9 @@ function Map:add_split(id, split)
   self:update_bsp()
 end
 
-function Map:object_at(x, y)
-  for id, r in pairs(self.rooms) do
-    if r.x == x and r.y == y then
-      return {
-        id = id,
-        obj = r,
-      }
-    end
-  end
-
-  return nil
-end
-
-function Map:object_by_id(id)
-  if self.walls[id] ~= nil then
-    return self.walls[id]
-  end
-  if self.rooms[id] ~= nil then
-    return self.rooms[id]
-  end
-  if self.splits[id] ~= nil then
-    return self.splits[id]
-  end
-  if self.lights[id] ~= nil then
-    return self.lights[id]
-  end
+function Map:add_thing(id, thing)
+  self.things[id] = thing
+  self:update_bsp()
 end
 
 function Map:add_room(id, room)
@@ -167,6 +150,35 @@ function Map:remove_object(id, kind)
 
   self:update_bsp()
 end
+
+function Map:object_at(x, y)
+  for id, r in pairs(self.rooms) do
+    if r.x == x and r.y == y then
+      return {
+        id = id,
+        obj = r,
+      }
+    end
+  end
+
+  return nil
+end
+
+function Map:object_by_id(id)
+  if self.walls[id] ~= nil then
+    return self.walls[id]
+  end
+  if self.rooms[id] ~= nil then
+    return self.rooms[id]
+  end
+  if self.splits[id] ~= nil then
+    return self.splits[id]
+  end
+  if self.lights[id] ~= nil then
+    return self.lights[id]
+  end
+end
+
 
 function Map:get_id()
   local ret = self.next_id

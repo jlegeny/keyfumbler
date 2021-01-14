@@ -343,6 +343,52 @@ RayCaster.get_visible_ordered_nodes = function(node, rx, ry, vx, vy)
   return ids
 end
 
+function sq_dist_pt_line(line, x, y)
+  local abx, aby = line.bx - line.ax, line.by - line.ay
+  local apx, apy = x - line.ax, y - line.ay
+  local bpx, bpy = x - line.bx, y - line.by
+
+  local e = apx * abx + apy * aby
+
+  if e <= 0 then
+    return apx * apx + apy * apy
+  end
+
+  local f = abx * abx + aby * aby
+  if e >= f then
+    return bpx * bpx + bpy * bpy
+  end
+
+  return apx * apx + apy * apy - e * e / f
+end
+
+RayCaster.circular_collision = function(node, x, y, r2)
+  if node.is_leaf then
+    return nil
+  end
+
+  --local norm_x, norm_y = Line.norm_vector(node.line)
+  local dot = Line.point_dot(node.line, x, y)
+  
+  if node.is_split then
+    if dot > 0 then
+      return RayCaster.circular_collision(node.front, x, y, r2)
+    else
+      return RayCaster.circular_collision(node.back, x, y, r2)
+    end
+  else
+    local d = sq_dist_pt_line(node.line, x, y)
+    if d <= r2 then
+      return node
+    end
+    if dot > 0 then
+      return RayCaster.circular_collision(node.front, x, y, r2)
+    else
+      return RayCaster.circular_collision(node.back, x, y, r2)
+    end
+  end
+end
+
 RayCaster.get_front_leave_ids = function(node, visited)
   if visited == nil then
     visited = {}

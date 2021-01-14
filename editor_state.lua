@@ -77,14 +77,7 @@ function EditorState:undo(map)
   end
   local tail = table.remove(self.undo_stack, #self.undo_stack)
   table.insert(e.redo_stack, tail)
-
-  if tail.op == Operation.ADD_WALL then
-    map:remove_object(tail.obj.id, 'wall')
-  elseif tail.op == Operation.ADD_SPLIT then
-    map:remove_object(tail.obj.id, 'split')
-  elseif tail.op == Operation.COMPLEX then
-    map:from(tail.pre)
-  end
+  map:from(tail.pre)
 end
 
 function EditorState:redo(map)
@@ -93,13 +86,7 @@ function EditorState:redo(map)
   end
   local tail = table.remove(self.redo_stack, #self.redo_stack)
   table.insert(e.undo_stack, tail)
-  if tail.op == Operation.ADD_WALL then
-    map:add_wall(tail.obj.id, tail.obj.wall)
-  elseif tail.op == Operation.ADD_SPLIT then
-    map:add_split(tail.obj.id, tail.obj.split)
-  elseif tail.op == Operation.COMPLEX then
-    map:from(tail.post)
-  end
+  map:from(tail.post)
 end
 
 function EditorState:undoable(op, clean_redo_stack)

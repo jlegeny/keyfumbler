@@ -19,7 +19,7 @@ function Player.new()
   self.rot = 0
   self.z = 0
   self.h = 1
-  self.w = 0.5
+  self.w = 0.2
   self.chin = 0
   self.no_clip = false
 
@@ -54,27 +54,46 @@ end
 function Player:step_forward(dt, map)
   dx = dt * math.sin(self.rot) * self.speed
   dy = dt * math.cos(self.rot) * self.speed
-  wx = math.sin(self.rot) * self.w
-  wy = math.cos(self.rot) * self.w
 
-  local obstructed = not self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
+
+  local bounces = 0
+  local collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w)
+  while collision ~= nil and bounces < 2 do
+    local nx, ny = Line.norm_vector(collision.line)
+    local dot = self.rx * nx + self.ry * ny
+    if dot < 0 then
+      dx = dx + nx * dx
+      dy = dy + ny * dy
+    else
+      dx = dx - nx * dx
+      dy = dy - ny * dy
+    end
+    collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w)
+    bounces = bounces + 1
+  end
+
+  local obstructed = false
+  if collision ~= nil then
+    obstructed = not self.noclip 
+  end
+ 
   if not obstructed then
     self.rx = self.rx + dx
     self.ry = self.ry + dy
+    self:update(map)
   end
-  self:update(map)
 end
 
 function Player:step_backward(dt, map)
   dx = -dt * math.sin(self.rot) * self.speed
   dy = -dt * math.cos(self.rot) * self.speed
-  wx = -math.sin(self.rot) * self.w
-  wy = -math.cos(self.rot) * self.w
 
-  local obstructed = self.no_clip and raycaster.is_cut_by_wall(map, Line(self.rx, self.ry, self.rx + wx, self.ry + wy))
-  self.rx = self.rx + dx
-  self.ry = self.ry + dy
-  self:update(map)
+  local obstructed = not self.noclip and raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w)
+  if not obstructed then
+    self.rx = self.rx + dx
+    self.ry = self.ry + dy
+    self:update(map)
+  end
 end
 
 

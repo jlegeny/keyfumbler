@@ -224,15 +224,9 @@ function love.keypressed(key, unicode)
     elseif key == 'f9' then
       restore('scratch.map')
     elseif key == 'backspace' then
-      local pre = util.deepcopy(map)
-      map:remove_objects_set(e.selection)
-      local post = util.deepcopy(map)
-      e:undoable({
-        op = Operation.COMPLEX,
-        description = "delete",
-        pre = pre,
-        post = post,
-      })
+      undoable('delete', function ()
+        map:remove_objects_set(e.selection)
+      end)
     elseif key == 'r' then
       love.event.quit('restart')
     elseif key == 'q' then
@@ -240,7 +234,7 @@ function love.keypressed(key, unicode)
     elseif key == 'kpenter' then
       fullscreen = not fullscreen
     elseif key == 'insert' then
-      clip = not clip
+      player.noclip = not player.noclip
     elseif key == 'tab' then
       if shift then
         level_overlay_renderer:toggle_mode()
@@ -359,17 +353,22 @@ function love.keypressed(key, unicode)
   end
 end
 
+function undoable(description, closure)
+  local pre = util.deepcopy(map)
+  closure()
+  local post = util.deepcopy(map)
+  e:undoable({
+    description = description,
+    pre = pre,
+    post = post,
+  })
+end
+
 function execute_action(action)
   if action.kind == 'clear' then
-    local pre = util.deepcopy(map)
-    map = Map({ next_id = 1 })
-    local post = util.deepcopy(map)
-    e:undoable({
-      op = Operation.COMPLEX,
-      description = 'clear',
-      pre = pre,
-      post = post,
-    })
+    undoable('clear', function()
+      map = Map({ next_id = 1 })
+    end)
   end
 end
 
@@ -387,14 +386,14 @@ function love.mousepressed(mx, my, button, istouch)
           if objat == nil then
             local id = map:get_id()
             local room = Room(rx, ry, 0, 2, 32)
-            map:add_room(id, room)
+            undoable('add_room', function() map:add_room(id, room) end)
           end
         elseif e.draw == Draw.LIGHT then
           local objat = map:object_at(rx, ry)
           if objat == nil then
             local id = map:get_id()
             local light = Light(rx, ry, 4)
-            map:add_light(id, light)
+            undoable('add_light', function() map:add_light(id, light) end)
           end
         elseif e.draw == Draw.SPLIT then
           e.state = State.IC_DRAWING_SPLIT
@@ -417,14 +416,7 @@ function love.mousepressed(mx, my, button, istouch)
     if button == 1 then
       local id = map:get_id()
       local wall = Wall(e.current_rline)
-      e:undoable({
-        op = Operation.ADD_WALL,
-        obj = {
-          id = id,
-          wall = wall
-        },
-      })
-      map:add_wall(id, wall)
+      undoable('add_wall', function() map:add_wall(id, wall) end)
       e.state = State.IDLE
       local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
       love.mouse.setPosition(cx, cy)
@@ -514,14 +506,9 @@ function love.draw()
         then 
           local id = map:get_id()
           local split = Split(e.current_rline)
-          e:undoable({
-            op = Operation.ADD_SPLIT,
-            obj = {
-              id = id,
-              split = split
-            },
-          })
-          map:add_split(id, split)
+          undoable('add_split', function ()
+            map:add_split(id, split)
+          end)
           e.state = State.IDLE
           local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
           love.mouse.setPosition(cx, cy)

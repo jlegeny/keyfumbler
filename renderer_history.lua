@@ -47,23 +47,13 @@ function HistoryRenderer:draw(e)
   love.graphics.setColor(1, 0, 0.5, 1)
   local i = 0
   for j = 1, #e.redo_stack do
-    local text
-    if e.redo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = e.redo_stack[j].obj.id }
-    elseif e.redo_stack[j].op == Operation.COMPLEX then
-      text = e.redo_stack[j].description
-    end
+    local text = e.redo_stack[j].description
     love.graphics.print(text, self.x, self.y + i * 16)
     i = i + 1
   end
   love.graphics.setColor(0.5, 0, 1, 1)
   for j = #e.undo_stack, 1, -1 do
-    local text
-    if e.undo_stack[j].op == Operation.ADD_WALL then
-      text = "Wall ${id}" % { id = e.undo_stack[j].obj.id }
-    elseif e.undo_stack[j].op == Operation.COMPLEX then
-      text = e.undo_stack[j].description
-    end
+    local text = e.undo_stack[j].description
     love.graphics.print(text, self.x, self.y + i * 16)
     i = i + 1
   end
