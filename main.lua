@@ -2,15 +2,12 @@ local util = require 'util'
 local engyne = require 'engyne'
 local raycaster = require 'raycaster'
 
-local bitser = require 'bitser'
-
 local lines = require 'lines'
 
 local Game = require 'game'
 local Line = require 'line'
 local Map = require 'map'
 local Level = require 'level'
-local Player = require 'player'
 local Room = require 'room'
 local Light = require 'light'
 local Split = require 'split'
@@ -34,6 +31,7 @@ local ItemRenderer = require 'renderer_item'
 local TabsRenderer = require 'renderer_tabs'
 local StatusBarRenderer = require 'renderer_statusbar'
 local VolumeRenderer = require 'renderer_volume'
+local VolumeOverlayRenderer = require 'renderer_volume_overlay'
 
 
 Operation = {
@@ -46,7 +44,12 @@ e = EditorState()
 
 image_names = {'missing', 'painting-01'}
 image_data = {}
-map = Map({ next_id = 1 })
+level = Level('basement', {
+  [0] = 'scratch',
+  [1] = 'map01',
+})
+mapindex = 0
+map = nil
 game = nil
 level_renderer = LevelRenderer()
 level_overlay_renderer = LevelOverlayRenderer(level_renderer)
@@ -57,6 +60,7 @@ drawinfo_renderer = DrawInfoRenderer()
 item_renderer = ItemRenderer()
 tabs_renderer = TabsRenderer()
 volume_renderer = VolumeRenderer()
+volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
 statusbar_renderer = StatusBarRenderer()
 
 WINDOW_WIDTH = 980
@@ -83,32 +87,24 @@ end
 
 -- FUNCTIONS
 
-function save(filename)
-  map.delegate = nil
-  local map_str = bitser.dumps(map)
-  love.filesystem.write(filename, map_str)
-  map:set_delegate(delegate)
+function restore()
+  level:restore()
 end
 
-function restore(filename)
-  local map_str = love.filesystem.newFileData(filename)
-  map = bitser.loadData(map_str:getPointer(), map_str:getSize())
-  Map.fix(map)
-  setmetatable(map, Map)
-  map:set_delegate(delegate)
-  map:update_bsp()
-  game:set_map(map)
+function setmap()
+  map = level.layers[mapindex]
+  game:set_level(level, mapindex)
+  volume_renderer:invalidate_light_cache()
   e.undo_stack = {}
   e.redo_stack = {}
 end
+
 
 -- DRAW FUNCTIONS
 
 -- LOVE
 
 function love.load()
-  -- bitser
-  -- bitser.registerClass(Map)
   game = Game:new()
 
   -- window
@@ -128,11 +124,7 @@ function love.load()
   -- fonts
   engyne.set_default_font()
 
-  if love.filesystem.getInfo('scratch.map') ~= nil then
-    restore('scratch.map')
-  end
-
-  game:set_map(map)
+  setmap()
   game:set_player_position(51.5, 54.5, math.pi / 2)
 
   e.mode = EditorMode.DRAW
@@ -182,7 +174,6 @@ function setup(w, h)
   statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
   item_renderer:set_delegate(delegate)
-  map:set_delegate(delegate)
 end
 
 function love.resize(w, h)
@@ -190,8 +181,7 @@ function love.resize(w, h)
 end
 
 function love.quit()
-  map.volatile = {}
-  save('scratch.map')
+  level:save(mapindex)
   return false
 end
 
@@ -267,6 +257,10 @@ function love.keypressed(key, unicode)
         message = 'Press [delete] again to clear all',
         key = 'delete',
       }
+    elseif key == 'pagedown' then
+      mapindex = (mapindex + 1) % level.layer_count
+      print(mapindex, level.layer_count)
+      setmap()
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
@@ -384,7 +378,6 @@ function love.draw()
   love.graphics.setColor(1, 1, 1, 1)
 
   level_renderer:draw_canvas()
-  volume_renderer:draw_canvas()
 
   tabs_renderer:draw_canvas()
   tabs_renderer:draw(e)
@@ -482,8 +475,6 @@ function love.draw()
   level_renderer:draw(map, e)
   level_overlay_renderer:draw(map, game.player)
 
-
-
   -- draw the cursor
   if e.state == State.IDLE or e.state == State.IC_DRAWING_WALL_NORMAL then
     love.mouse.setVisible(true)
@@ -550,7 +541,7 @@ function love.draw()
   info_renderer:write('grey', 'fps = {}', love.timer.getFPS())
   statusbar_renderer:write('grey', 'mx = {}, my = {}', mx, my)
   statusbar_renderer:write('grey', 'rx = {}, ry = {}', rx, ry)
-  statusbar_renderer:write('grey', 'ox = {}, oy = {}', e.offset_x, e.offset_y)
+  statusbar_renderer:write('grey', '{}', map.volatile.mapname)
 
   if e.state == State.IC then
     local region = raycaster.get_region_node(map.volatile.bsp, rx, ry)
@@ -666,7 +657,8 @@ function love.draw()
   -- 3D View
 
   local dt = love.timer.getDelta()
-  volume_renderer:draw(map, game.player, dt, fullscreen)
+  volume_renderer:draw(map, game, dt, fullscreen)
+  volume_overlay_renderer:draw(map, game, fullscreen)
   game:update(dt)
 end
 

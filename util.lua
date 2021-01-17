@@ -27,4 +27,8 @@ util.deepcopy = function(orig, copies)
   return copy
 end
 
+util.gamedir = function()
+  return love.filesystem.getSource()
+end
+
 return util

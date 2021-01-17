@@ -542,8 +542,11 @@ function LevelRenderer:draw(map, editor_state)
   local mode_y = self.y + 5
   engyne.set_color('darkgrey', 0)
   love.graphics.rectangle('fill', mode_x, mode_y, string.len(mode_str) * 7 + 10, 20)
+  love.graphics.rectangle('fill', self.x + 10, mode_y, string.len(map.volatile.mapname) * 7 + 10, 20)
+
   engyne.set_color('copper', 5)
   love.graphics.print(mode_str, mode_x + 5, mode_y)
+  love.graphics.print(map.volatile.mapname, self.x + 15, mode_y)
 
   love.graphics.setScissor()
 end

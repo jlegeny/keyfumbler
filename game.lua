@@ -1,3 +1,5 @@
+local geom = require 'geom'
+
 local Player = require 'player'
 
 local Game = {}
@@ -13,12 +15,17 @@ function Game.new()
   local self = {}
   setmetatable(self, Game)
   self.player = Player()
+  self.level = nil
+  self.layer = nil
   self.map = nil
+  self.overlay_text = nil
   return self
 end
 
-function Game:set_map(map)
-  self.map = map
+function Game:set_level(level, layer)
+  self.level = level
+  self.layer = layer
+  self.map = level.layers[layer]
 end
 
 function Game:keypressed(key, unicode)
@@ -37,7 +44,25 @@ function Game:eye_vector()
   return Line(self.player.rx, self.player.ry, self.player.rx + math.sin(self.player.rot), self.player.ry + math.cos(self.player.rot))
 end
 
+function Game:get_trigger()
+  local nearest = nil
+  local ld = 100000
+  for id, t in pairs(self.map.triggers) do
+    local sqd = geom.sqd(self.player.rx, self.player.ry, t.x, t.y)
+    if sqd <= t.r ^ 2 and sqd <= ld then
+      nearest = id
+    end
+  end
+  return nearest
+end
+
 function Game:update(dt)
+  self.overlay_text = nil
+  -- triggers
+  local nearest_trigger = self:get_trigger()
+  if nearest_trigger ~= nil then
+    self.overlay_text = map.triggers[nearest_trigger].name
+  end
   -- player controls
   if love.keyboard.isDown('a') then
     self.player:rotate_ccw(dt)

@@ -59,10 +59,12 @@ function VolumeRenderer:setup(x, y, width, height, textures)
   self.height = height
   self.textures = textures
 
-  self.canvas = love.graphics.newCanvas(self.width, self.height)
   self.fpv = love.graphics.newCanvas(self.width, self.height)
   self.fpv:setFilter("nearest", "nearest")
-  self:pre_render_canvas()
+
+  if self.overlay then
+    self.overlay:setup()
+  end
 end
 
 function VolumeRenderer:invalidate_light_cache(rect)
@@ -79,18 +81,6 @@ function VolumeRenderer:invalidate_light_cache(rect)
   end
 end
 
-function VolumeRenderer:pre_render_canvas()
-  love.graphics.setCanvas(self.canvas)
-  love.graphics.clear()
-  love.graphics.setBlendMode('alpha')
-
-  engyne.set_color('darkgrey', 4)
-  love.graphics.rectangle('line', 0, 0, self.width, self.height)
-
-  -- set canvas back to original
-  love.graphics.setCanvas()
-end
-
 function VolumeRenderer:toggle_mode()
   if self.mode == 'photo' then
     self.mode = 'light'
@@ -99,10 +89,6 @@ function VolumeRenderer:toggle_mode()
   elseif self.mode == 'surface' then
     self.mode = 'photo'
   end
-end
-
-function VolumeRenderer:draw_canvas()
-  love.graphics.draw(self.canvas, self.x, self.y)
 end
 
 function VolumeRenderer:draw_primitive(map, player)
@@ -569,7 +555,8 @@ VolumeRenderer.print_segments = function(segments)
   end
 end
 
-function VolumeRenderer:draw(map, player, dt, fullscreen)
+function VolumeRenderer:draw(map, game, dt, fullscreen)
+  local player = game.player
   self.time = self.time + dt
 
   love.graphics.setBlendMode('alpha', 'premultiplied')

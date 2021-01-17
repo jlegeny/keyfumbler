@@ -26,6 +26,10 @@ geom.print_poly = function(poly, prefix)
   end
 end
 
+geom.sqd = function(ax, ay, bx, by)
+  return (ax - bx) ^ 2 + (ay - by) ^ 2
+end
+
 geom.splitpoly = function(poly, line)
   local polya = {}
   local polyb = {}
