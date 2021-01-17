@@ -78,6 +78,13 @@ function ItemRenderer:print_stat(name, value, kind)
   else
     engyne.set_color('lightgrey', 7)
   end
+  if kind == 'bool' then
+    if value then
+      value = 'true'
+    else
+      value = 'false'
+    end
+  end
   love.graphics.print('${name} ${value}' % {
     name = name,
     value = value
@@ -115,6 +122,20 @@ function ItemRenderer:draw(map, editor_state)
   if self.kind == 'wall' then
     engyne.set_color('lightgrey', 7)
     love.graphics.print('selected wall ${id}' % { id = self.id }, self.x, self.y)
+  end
+
+  if self.kind == 'split' then
+    engyne.set_color('lightgrey', 7)
+    love.graphics.print('selected split ${id}' % { id = self.id }, self.x, self.y)
+    if self.selected == self._stat_n then
+      if self._stat_mod ~= 0 then
+        self.obj.is_door = not self.obj.is_door
+      end
+    end
+    self:print_stat('is_door', self.obj.is_door, 'bool')
+  end
+
+  if self.kind == 'wall' or self.kind == 'split' then
 
     if self.delegate and self.selected == self._stat_n then
       if self._stat_mod == 1 then
@@ -155,6 +176,7 @@ function ItemRenderer:draw(map, editor_state)
       self:print_stat('  h:', decal.height, 'ratio')
     end
   end
+
 
   if self.kind == 'room' then
     engyne.set_color('lightgrey', 7)

@@ -16,23 +16,6 @@ function vector_intersects_line(vector, line)
   return (dota < INTERSECT_TOLERANCE and dotb > -INTERSECT_TOLERANCE) and dot > INTERSECT_TOLERANCE
 end
 
-RayCaster.collisions = function(map, vector)
-  local collisions = {}
-  for id, wall in pairs(map.walls) do
-    if vector_intersects_line(vector, wall.line) then
-      local int_x, int_y = lines.intersection(vector, wall.line)
-      table.insert(collisions, {
-        x = int_x,
-        y = int_y,
-        sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2,
-        id = id,
-      })
-    end
-  end
-
-  return collisions
-end
-
 RayCaster.fast_collisions = function(map, vector)
   local nodes = RayCaster.get_visible_ordered_nodes(map.volatile.bsp, vector.ax, vector.ay, vector.bx, vector.by)
 
@@ -43,7 +26,27 @@ RayCaster.fast_collisions = function(map, vector)
     if not node.is_leaf then
       if vector_intersects_line(vector, node.line) or (
         node.is_split and vector_intersects_line(vector, lines.swapped(node.line))) then
+        local obj
+        if node.is_split then
+          obj = map.splits[node.ogid]
+        else
+          obj = map.walls[node.ogid]
+        end
+
         local int_x, int_y = lines.intersection(vector, node.line)
+
+        -- when useful detect position of the ray with respect to the wall
+        local posx
+        if (node.is_split and node.is_door) or #obj.decals > 0 then
+          local spanx = node.line.bx - node.line.ax
+          local spany = node.line.by - node.line.ay
+          if spanx > spany then
+            posx = (int_x - node.line.ax) / spanx
+          else
+            posx = (int_y - node.line.ay) / spany
+          end
+        end
+
         -- find room in front
         local dx, dy = (vector.bx - vector.ax) / 100, (vector.by - vector.ay) / 100
         local hx, hy = int_x - dx, int_y - dy
@@ -55,6 +58,15 @@ RayCaster.fast_collisions = function(map, vector)
         else
           room_id = room.id
         end
+        local door = nil
+        if node.is_split then
+          if obj.is_door and not obj.open then
+            obj.open_per = 0.5
+            door = {
+              open = posx > obj.open_per,
+            }
+          end
+        end
         table.insert(collisions, {
           x = int_x,
           y = int_y,
@@ -62,36 +74,33 @@ RayCaster.fast_collisions = function(map, vector)
           id = node.ogid,
           room_id = room_id,
           is_split = node.is_split,
+          door = door,
           ceiling_height = room.ceiling_height,
           floor_height = room.floor_height,
           ambient_light = room.ambient_light,
         })
         lx = int_x
         ly = int_y
-        if not node.is_split then
-          local wall = map.walls[node.ogid]
-          if wall and #wall.decals > 0 then
-            local cdec = {}
-            local spanx = node.line.bx - node.line.ax
-            local spany = node.line.by - node.line.ay
-            local posx
-            if spanx > spany then
-              posx = (int_x - node.line.ax) / spanx
-            else
-              posx = (int_y - node.line.ay) / spany
-            end
-            for _, decal in ipairs(wall.decals) do
-              if posx > decal.x and posx < decal.x + decal.width then
-                table.insert(cdec, {
-                  name = decal.name,
-                  posx = (posx - decal.x) / decal.width,
-                  y = decal.y,
-                  height = decal.height,
-                })
-              end
-            end
-            collisions[#collisions].decals = cdec
+        -- decals
+        if #obj.decals > 0 and not (obj.is_door and door == nil) then
+          local cdec = {}
+          local door_posx = posx
+          if obj.is_door then
+            door_posx = door_posx + obj.open_per
           end
+          for _, decal in ipairs(obj.decals) do
+            if posx > decal.x and door_posx < decal.x + decal.width then
+              table.insert(cdec, {
+                name = decal.name,
+                posx = (door_posx - decal.x) / decal.width,
+                y = decal.y,
+                height = decal.height,
+              })
+            end
+          end
+          collisions[#collisions].decals = cdec
+        end
+        if not node.is_split then
           return collisions
         end
       end

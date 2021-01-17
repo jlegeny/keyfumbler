@@ -203,6 +203,19 @@ function LevelRenderer:draw_lights(map, editor_state)
   end
 end
 
+function LevelRenderer:draw_triggers(map, editor_state)
+  for id, t in pairs(map.triggers) do
+    local cx, cy = self:canvas_point(t.x, t.y)
+    engyne.set_color('copper', 2)
+    if editor_state.selection[id] ~= nil then
+      engyne.set_color('copper', 1)
+      love.graphics.circle('line', cx, cy, t.r * self.zoom_factor)
+    end
+    love.graphics.circle('line', cx, cy, 3)
+  end
+end
+
+
 function LevelRenderer:draw_node(node, editor_state)
   if node.is_leaf then
     return
@@ -216,7 +229,11 @@ function LevelRenderer:draw_node(node, editor_state)
   elseif hl ~= nil then
     engyne.set_color(hl[1], hl[2])
   elseif node.is_split then
-    engyne.set_color('brass', 5)
+    if node.is_door then
+      engyne.set_color('copper', 6)
+    else
+      engyne.set_color('brass', 5)
+    end
   else
     engyne.set_color('lightgrey', 7)
   end
@@ -343,7 +360,11 @@ function LevelRenderer:draw_map(map, editor_state)
   for id, w in pairs(map.splits) do
     local cline = self:canvas_line(w.line)
 
-    engyne.set_color('brass', 5)
+    if w.is_door then
+      engyne.set_color('copper', 5)
+    else
+      engyne.set_color('brass', 5)
+    end
     if editor_state.selection[id] ~= nil then
       engyne.set_color(unpack(hl_color))
     end
@@ -514,6 +535,7 @@ function LevelRenderer:draw(map, editor_state)
 
   self:draw_rooms(map, editor_state)
   self:draw_lights(map, editor_state)
+  self:draw_triggers(map, editor_state)
 
   local mode_str = self:mode_str()
   local mode_x = self.x + self.width - 15 - string.len(mode_str) * 7

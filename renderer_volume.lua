@@ -262,14 +262,18 @@ function VolumeRenderer:light_segment_renderer(ox, oy, s)
 end
 
 function VolumeRenderer:photo_segment_renderer(ox, oy, s)
-  if s.kind == 'wall' or s.kind == 'split' then
+  if s.kind == 'wall' or s.kind == 'split' or s.kind == 'door' then
     local illumination = ((s.ambient_light + s.dynamic_light) / 64)
     local light = math.min(illumination * 1 / (math.sqrt(s.dist / 2)), 1)
     --local light = math.min(illumination, 1)
 
     local wall_color = math.floor(light * 62)
     wall_color = math.min(math.max(wall_color, 0), 62)
-    engyne.set_color('grey', wall_color)
+    if s.kind == 'door' then
+      engyne.set_color('brass', math.floor(wall_color / 8))
+    else
+      engyne.set_color('grey', wall_color)
+    end
     local top = self.height * (s.top + 1) / 2
     local bottom = self.height * (s.bottom + 1) / 2
 
@@ -283,7 +287,9 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
         local dtop = math.floor(rtop + h * decal.y)
         local dbottom = math.floor(rtop + h * (decal.y + decal.height))
         local texture = self.textures[decal.name]
-        for i = dtop, dbottom do
+        local start = math.max(0, dtop)
+        local stop = math.min(self.height, dbottom)
+        for i = start, stop do
           local tx = decal.posx * (texture.width - 1)
           local ty = (i - dtop) / (dbottom - dtop) * (texture.height - 1)
           local r, g, b, a = texture.texture:getPixel(tx, ty)
@@ -489,6 +495,24 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           prev_dynamic_light = prev_dynamic_light,
         })
         prev_bottom = ceiling_bottom
+      end
+
+      if cc.door and not cc.door.open then
+        table.insert(segments, {
+          kind = 'door',
+          id = cc.id,
+          dist = dist,
+          scale = scale,
+          top = prev_top,
+          bottom = prev_bottom,
+          ambient_light = cc.ambient_light,
+          dynamic_light = cc.dynamic_light,
+          prev_dynamic_light = prev_dynamic_light,
+          decals = cc.decals,
+          floor_top = floor_top,
+          ceiling_bottom = ceiling_bottom,
+        })
+        return segments
       end
 
       if not (cc.is_split or cc.is_spot) then

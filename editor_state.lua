@@ -22,6 +22,8 @@ Draw = {
   SPLIT = 2,
   ROOM = 3,
   LIGHT = 4,
+  THING = 5,
+  TRIGGER = 6,
 }
 
 Probe = {
@@ -117,6 +119,10 @@ function EditorState:toggle_draw()
   elseif self.draw == Draw.ROOM then
     self.draw = Draw.LIGHT
   elseif self.draw == Draw.LIGHT then
+    self.draw = Draw.THING
+  elseif self.draw == Draw.THING then
+    self.draw = Draw.TRIGGER
+  elseif self.draw == Draw.TRIGGER then
     self.draw = Draw.WALL
   end
 end
@@ -168,6 +174,10 @@ function EditorState:draw_str()
     return 'Split'
   elseif self.draw == Draw.LIGHT then
     return 'Light'
+  elseif self.draw == Draw.THING then
+    return 'Thing'
+  elseif self.draw == Draw.TRIGGER then
+    return 'Trigger'
   end
 end
 

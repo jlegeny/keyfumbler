@@ -9,7 +9,7 @@ setmetatable(Split, {
   end,
 })
 
-function Split.new(line)
+function Split.new(line, is_door)
   local self = {}
   setmetatable(self, Split)
   self.kind = 'split'
@@ -17,26 +17,12 @@ function Split.new(line)
   self.norm_x, self.norm_y = Line.norm_vector(line)
   self.mid_x = (line.ax + line.bx) / 2
   self.mid_y = (line.ay + line.by) / 2
+  self.is_door = is_door
+  self.open = false
+  self.open_per = 0
+  self.decals = {}
   return self
 end
-
-function Split:vector()
-  return self.bx - self.ax, self.by - self.ay
-end
-
-function Split:normalized_vector()
-  local x, y = self:vector()
-  d = math.sqrt(x * x + y * y)
-  return x / d, y / d
-end
-
-function Split:describe()
-  print("AX", self.ax)
-  print("AY", self.ay)
-  print("BX", self.bx)
-  print("BY", self.by)
-end
-
 
 return Split
 

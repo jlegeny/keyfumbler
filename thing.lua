@@ -7,6 +7,11 @@ setmetatable(Thing, {
   end,
 })
 
+Thing.Type = {
+  DOODAD = 1,
+  KEY = 2,
+}
+
 function Thing.new(x, y, z, width, height, what, meta)
   local self = {}
   setmetatable(self, Thing)

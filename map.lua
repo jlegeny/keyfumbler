@@ -40,6 +40,7 @@ function Map.new(params)
   self.rooms = {}
   self.lights = {}
   self.things = {}
+  self.triggers = {}
   self.volatile = {
     bsp = {},
     leaves = {},
@@ -73,11 +74,24 @@ function Map:fix()
   if self.splits == nil then
     self.splits = {}
   end
+  for _, s in pairs(self.splits) do
+    if s.decals == nil then
+      s.decals = {}
+    end
+    if s.is_door == nil then
+      s.is_door = false
+      s.open = false
+      s.open_per = 0
+    end
+  end
   if self.lights == nil then
     self.lights = {}
   end
   if self.things == nil then
     self.things = {}
+  end
+  if self.triggers == nil then
+    self.triggers = {}
   end
   if self.volatile == nil then
     self.volatile = {
@@ -95,30 +109,29 @@ function Map:from(other)
   self.splits = other.splits
   self.lights = other.lights
   self.things = other.things
+  self.triggers = other.triggers
 end
 
-function Map:add_wall(id, wall)
-  self.walls[id] = wall
-  self:update_bsp()
+
+function Map:get_object_table(kind)
+  if kind == 'wall' then
+    return self.walls
+  elseif kind == 'split' then
+    return self.splits
+  elseif kind == 'room' then
+    return self.rooms
+  elseif kind == 'light' then
+    return self.lights
+  elseif kind == 'thing' then
+    return self.things
+  elseif kind == 'trigger' then
+    return self.triggers
+  end
 end
 
-function Map:add_split(id, split)
-  self.splits[id] = split
-  self:update_bsp()
-end
-
-function Map:add_thing(id, thing)
-  self.things[id] = thing
-  self:update_bsp()
-end
-
-function Map:add_room(id, room)
-  self.rooms[id] = room
-  self:update_bsp()
-end
-
-function Map:add_light(id, light)
-  self.lights[id] = light
+function Map:add_object(id, obj)
+  local table = self:get_object_table(obj.kind)
+  table[id] = obj
   self:update_bsp()
 end
 
@@ -131,33 +144,29 @@ end
 function Map:remove_object(id, kind)
   local kinds
   if kind == nil then
-    kinds = { 'wall', 'room', 'split', 'light' }
+    kinds = { 'wall', 'room', 'split', 'light', 'thing', 'trigger' }
   else
     kinds = { kind }
   end
 
   for _, k in ipairs(kinds) do
-    if kind == 'wall' then
-      self.walls[id] = nil
-    elseif kind == 'room' then
-      self.rooms[id] = nil
-    elseif kind == 'split' then
-      self.splits[id] = nil
-    elseif kind == 'light' then
-      self.lights[id] = nil
-    end
+    local ot = self:get_object_table(k)
+    ot[id] = nil
   end
 
   self:update_bsp()
 end
 
 function Map:object_at(x, y)
-  for id, r in pairs(self.rooms) do
-    if r.x == x and r.y == y then
-      return {
-        id = id,
-        obj = r,
-      }
+  for _, kind in pairs({'room', 'light', 'thing', 'trigger'}) do
+    local ot = self:get_object_table(kind)
+    for id, obj in pairs(ot) do
+      if obj.x == x and obj.y == y then
+        return {
+          id = id,
+          obj = obj,
+        }
+      end
     end
   end
 
@@ -165,17 +174,12 @@ function Map:object_at(x, y)
 end
 
 function Map:object_by_id(id)
-  if self.walls[id] ~= nil then
-    return self.walls[id]
-  end
-  if self.rooms[id] ~= nil then
-    return self.rooms[id]
-  end
-  if self.splits[id] ~= nil then
-    return self.splits[id]
-  end
-  if self.lights[id] ~= nil then
-    return self.lights[id]
+  kinds = { 'wall', 'room', 'split', 'light', 'thing', 'trigger' }
+  for _, k in ipairs(kinds) do
+    local ot = self:get_object_table(k)
+    if ot[id] ~= nil then
+      return ot[id]
+    end
   end
 end
 
@@ -200,30 +204,26 @@ end
 
 function Map:bound_objects_set(rect)
   local objects = {}
-  for id, wall in pairs(self.walls) do
-    if is_line_in(wall.line, rect) then
-      objects[id] = 'wall'
+  for _, kind in ipairs({'wall', 'split'}) do
+    local ot = self:get_object_table(kind)
+    for id, obj in pairs(ot) do
+      if is_line_in(obj.line, rect) then
+        objects[id] = obj.kind
+      end
     end
   end
-  for id, split in pairs(self.splits) do
-    if is_line_in(split.line, rect) then
-      objects[id] = 'split'
-    end
-  end
-  for id, room in pairs(self.rooms) do
-    if is_point_in(room.x, room.y, rect) then
-      objects[id] = 'room'
-    end
-  end
-  for id, light in pairs(self.lights) do
-    if is_point_in(light.x, light.y, rect) then
-      objects[id] = 'light'
+  for _, kind in ipairs({'room', 'light', 'thing', 'trigger'}) do
+    local ot = self:get_object_table(kind)
+    for id, obj in pairs(ot) do
+      if is_point_in(obj.x, obj.y, rect) then
+        objects[id] = obj.kind
+      end
     end
   end
   return objects
 end
 
-function Map:place_line_in_bsp(node, ogid, line, next_id, is_split)
+function Map:place_line_in_bsp(node, ogid, line, next_id, obj)
   if node.is_leaf then
     local norm_x, norm_y = Line.norm_vector(line)
     local new_node = {
@@ -233,7 +233,7 @@ function Map:place_line_in_bsp(node, ogid, line, next_id, is_split)
       line = line, 
       norm_x = norm_x,
       norm_y = norm_y,
-      is_split = is_split,
+      is_split = obj.kind == 'split',
       up = id,
     }
     local fid = next_id()
@@ -260,15 +260,15 @@ function Map:place_line_in_bsp(node, ogid, line, next_id, is_split)
     local dota = Line.fast_dot(node.line, line.ax, line.ay)
     local dotb = Line.fast_dot(node.line, line.bx, line.by)
     if dota < EPSILON and dotb < EPSILON then
-      node.back = self:place_line_in_bsp(node.back, ogid, line, next_id, is_split)
+      node.back = self:place_line_in_bsp(node.back, ogid, line, next_id, obj)
     elseif dota > -EPSILON and dotb > -EPSILON then
-      node.front = self:place_line_in_bsp(node.front, ogid, line, next_id, is_split)
+      node.front = self:place_line_in_bsp(node.front, ogid, line, next_id, obj)
     else
       local sx, sy = lines.intersection(line, node.line)
       local split1 = Line(line.ax, line.ay, sx, sy)
       local split2 = Line(sx, sy, line.bx, line.by)
-      node = self:place_line_in_bsp(node, ogid, split1, next_id, is_split)
-      node = self:place_line_in_bsp(node, ogid, split2, next_id, is_split)
+      node = self:place_line_in_bsp(node, ogid, split1, next_id, obj)
+      node = self:place_line_in_bsp(node, ogid, split2, next_id, obj)
     end
     return node
   end
@@ -430,7 +430,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local wall = self.walls[ogid]
-    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, false)
+    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, wall)
   end
 
   sorted_ids = {}
@@ -441,7 +441,7 @@ function Map:update_bsp()
 
   for i, ogid in ipairs(sorted_ids) do
     local split = self.splits[ogid]
-    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, true)
+    self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, split)
   end
 
   sorted_ids = {}

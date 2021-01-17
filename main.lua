@@ -6,6 +6,7 @@ local bitser = require 'bitser'
 
 local lines = require 'lines'
 
+local Game = require 'game'
 local Line = require 'line'
 local Map = require 'map'
 local Level = require 'level'
@@ -13,6 +14,8 @@ local Player = require 'player'
 local Room = require 'room'
 local Light = require 'light'
 local Split = require 'split'
+local Thing = require 'thing'
+local Trigger = require 'trigger'
 local Wall = require 'wall'
 
 local editor = require 'editor_state'
@@ -44,11 +47,7 @@ e = EditorState()
 image_names = {'missing', 'painting-01'}
 image_data = {}
 map = Map({ next_id = 1 })
-player = Player()
-player.rx = 50
-player.ry = 54
-player.rot = -math.pi
-
+game = nil
 level_renderer = LevelRenderer()
 level_overlay_renderer = LevelOverlayRenderer(level_renderer)
 tools_renderer = ToolsRenderer()
@@ -98,9 +97,9 @@ function restore(filename)
   setmetatable(map, Map)
   map:set_delegate(delegate)
   map:update_bsp()
+  game:set_map(map)
   e.undo_stack = {}
   e.redo_stack = {}
-  player:update(map)
 end
 
 -- DRAW FUNCTIONS
@@ -110,10 +109,11 @@ end
 function love.load()
   -- bitser
   -- bitser.registerClass(Map)
+  game = Game:new()
 
   -- window
   love.window.setTitle("Engyne Edytor")
-  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {vsync = false, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
+  love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {fullscreen = false, vsync = true, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
 
   for i, name in ipairs(image_names) do
     local texture = love.image.newImageData('assets/${name}.png' % { name = name })
@@ -128,10 +128,12 @@ function love.load()
   -- fonts
   engyne.set_default_font()
 
-
   if love.filesystem.getInfo('scratch.map') ~= nil then
     restore('scratch.map')
   end
+
+  game:set_map(map)
+  game:set_player_position(51.5, 54.5, math.pi / 2)
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
@@ -231,10 +233,8 @@ function love.keypressed(key, unicode)
       love.event.quit('restart')
     elseif key == 'q' then
       love.event.quit(0)
-    elseif key == 'kpenter' then
+    elseif key == 'kpenter' or key == 'f' then
       fullscreen = not fullscreen
-    elseif key == 'insert' then
-      player.noclip = not player.noclip
     elseif key == 'tab' then
       if shift then
         level_overlay_renderer:toggle_mode()
@@ -244,8 +244,8 @@ function love.keypressed(key, unicode)
         level_renderer:toggle_mode()
       end
     elseif key == 'space' then
-      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
-      local collisions = raycaster.collisions(map, ray)
+      local ray = game:eye_vector()
+      local collisions = raycaster.fast_collisions(map, ray)
       if #collisions > 0 then
         local cc = raycaster.closest_collision(collisions)
         e.selection = {
@@ -267,41 +267,6 @@ function love.keypressed(key, unicode)
         message = 'Press [delete] again to clear all',
         key = 'delete',
       }
-    elseif key == 'return' then
-      local ray = Line(player.rx, player.ry, player.rx + math.sin(player.rot), player.ry + math.cos(player.rot))
-      if false then
-        local mx, my = love.mouse.getPosition()
-        local rx, ry = level_renderer:rel_point(mx, my)
-        print('--- ordered nodes ---')
-        local nodes = raycaster.get_ordered_nodes(map.volatile.bsp, rx, ry)
-        for i, node in pairs(nodes) do
-          if node.is_leaf then
-            print(i, node.id)
-          else
-            print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
-          end
-        end
-        print('--- ordered visible nodes ---')
-        local vnodes = raycaster.get_visible_ordered_nodes(map.volatile.bsp, ray.ax, ray.ay, ray.bx, ray.by)
-        e.highlight = {}
-        for i, node in pairs(vnodes) do
-          e.highlight[node.id] = { 'brass', 4 }
-          if node.is_leaf then
-            print(i, node.id)
-          else
-            print(i, node.id, ' ', node.ogid, ' ', node.line.ax, ' ', node.line.bx)
-          end
-        end
-      end
-      print('--- paint segments ---')
-      local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
-      local eye_px, eye_py = player.rx + player.chin * eye_x, player.ry + player.chin * eye_y
-      local collisions = raycaster.extended_collisions(map, ray)
-      for i, c in ipairs(collisions) do
-        print(c.is_split, c.dynamic_light)
-      end
-      local segments = volume_renderer.segments(eye_px, eye_py, eye_x, eye_y, player, collisions)
-      volume_renderer.print_segments(segments)
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
@@ -318,18 +283,6 @@ function love.keypressed(key, unicode)
       if e.sidebar == Sidebar.ITEM then
         item_renderer:inc_stat()
       end
-    elseif key == 'kp8' then
-      player.chin = player.chin + 0.05
-      print('chin', player.chin)
-    elseif key == 'kp2' then
-      player.chin = player.chin - 0.05
-      print('chin', player.chin)
-    elseif key == 'kp4' then
-      player.fov = player.fov - math.pi / 12
-      print('fov', player.fov)
-    elseif key == 'kp6' then
-      player.fov = player.fov + math.pi / 12
-      print('fov', player.fov)
     elseif key == '/' then
       e.state = State.DUMP
     end
@@ -351,6 +304,7 @@ function love.keypressed(key, unicode)
       e.state = State.IDLE
     end
   end
+  game:keypressed(key, unicode)
 end
 
 function undoable(description, closure)
@@ -381,23 +335,25 @@ function love.mousepressed(mx, my, button, istouch)
         if e.draw == Draw.WALL then
           e.state = State.IC_DRAWING_WALL
           e.current_rline = Line(rx, ry, rx, ry)
-        elseif e.draw == Draw.ROOM then
-          local objat = map:object_at(rx, ry)
-          if objat == nil then
-            local id = map:get_id()
-            local room = Room(rx, ry, 0, 2, 32)
-            undoable('add_room', function() map:add_room(id, room) end)
-          end
-        elseif e.draw == Draw.LIGHT then
-          local objat = map:object_at(rx, ry)
-          if objat == nil then
-            local id = map:get_id()
-            local light = Light(rx, ry, 4)
-            undoable('add_light', function() map:add_light(id, light) end)
-          end
         elseif e.draw == Draw.SPLIT then
           e.state = State.IC_DRAWING_SPLIT
           e.current_rline = Line(rx, ry, rx, ry)
+        else
+          local objat = map:object_at(rx, ry)
+          if objat == nil then
+            local id = map:get_id()
+            local obj = nil
+            if e.draw == Draw.ROOM then
+              obj = Room(rx, ry, 0, 2, 32)
+            elseif e.draw == Draw.LIGHT then
+              obj = Light(rx, ry, 4)
+            elseif e.draw == Draw.THING then
+              obj = Thing(rx, ry, 1, 1, Thing.Type.DOODAD, {})
+            elseif e.draw == Draw.TRIGGER then
+              obj = Trigger(rx, ry, 1, 'trigger')
+            end
+            undoable('add_' .. obj.kind, function() map:add_object(id, obj) end)
+          end
         end
       elseif e.mode == EditorMode.PROBE then
         if e.probe == Probe.VISIBILITY then
@@ -416,7 +372,7 @@ function love.mousepressed(mx, my, button, istouch)
     if button == 1 then
       local id = map:get_id()
       local wall = Wall(e.current_rline)
-      undoable('add_wall', function() map:add_wall(id, wall) end)
+      undoable('add_wall', function() map:add_object(id, wall) end)
       e.state = State.IDLE
       local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
       love.mouse.setPosition(cx, cy)
@@ -506,9 +462,7 @@ function love.draw()
         then 
           local id = map:get_id()
           local split = Split(e.current_rline)
-          undoable('add_split', function ()
-            map:add_split(id, split)
-          end)
+          undoable('add_split', function () map:add_object(id, split) end)
           e.state = State.IDLE
           local cx, cy = level_renderer:canvas_point(e.current_rline.bx, e.current_rline.by)
           love.mouse.setPosition(cx, cy)
@@ -526,7 +480,7 @@ function love.draw()
   end
 
   level_renderer:draw(map, e)
-  level_overlay_renderer:draw(map, player)
+  level_overlay_renderer:draw(map, game.player)
 
 
 
@@ -712,19 +666,7 @@ function love.draw()
   -- 3D View
 
   local dt = love.timer.getDelta()
-  volume_renderer:draw(map, player, dt, fullscreen)
-
-  -- player controls
-  if love.keyboard.isDown('a') then
-    player:rotate_ccw(dt)
-  elseif love.keyboard.isDown('d') then
-    player:rotate_cw(dt)
-  end
-
-  if love.keyboard.isDown('w') then
-    player:step_forward(dt, map)
-  elseif love.keyboard.isDown('s') then
-    player:step_backward(dt, map)
-  end
+  volume_renderer:draw(map, game.player, dt, fullscreen)
+  game:update(dt)
 end
 
