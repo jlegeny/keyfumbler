@@ -238,9 +238,11 @@ function love.keypressed(key, unicode)
       local collisions = raycaster.fast_collisions(map, ray)
       if #collisions > 0 then
         local cc = raycaster.closest_collision(collisions)
+        local kind = cc.is_split and 'split' or 'wall'
         e.selection = {
-          [cc.id] = 'wall'
+          [cc.id] = kind
         }
+        item_renderer:set_item(map, cc.id, kind)
       end
     elseif key == '=' and shift then
       level_renderer:zoom_in()

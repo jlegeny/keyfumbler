@@ -1,4 +1,5 @@
 local geom = require 'geom'
+local Line = require 'line'
 
 local Player = require 'player'
 
@@ -18,6 +19,7 @@ function Game.new()
   self.level = nil
   self.layer = nil
   self.map = nil
+  self.nearest_trigger = nil
   self.overlay_text = nil
   return self
 end
@@ -26,12 +28,6 @@ function Game:set_level(level, layer)
   self.level = level
   self.layer = layer
   self.map = level.layers[layer]
-end
-
-function Game:keypressed(key, unicode)
-  if key == 'insert' then
-    self.player.noclip = not self.player.noclip
-  end
 end
 
 function Game:set_player_position(x, y, rot)
@@ -56,12 +52,23 @@ function Game:get_trigger()
   return nearest
 end
 
+function Game:keypressed(key, unicode)
+  if key == 'insert' then
+    self.player.noclip = not self.player.noclip
+  elseif key == 'e' then
+    if self.nearest_trigger and level.trigger then
+      level.trigger(self.nearest_trigger, map.triggers[self.nearest_trigger], self)
+    end
+  end
+end
+
+
 function Game:update(dt)
   self.overlay_text = nil
   -- triggers
-  local nearest_trigger = self:get_trigger()
-  if nearest_trigger ~= nil then
-    self.overlay_text = map.triggers[nearest_trigger].name
+  self.nearest_trigger = self:get_trigger()
+  if self.nearest_trigger then
+    self.overlay_text = map.triggers[self.nearest_trigger].name
   end
   -- player controls
   if love.keyboard.isDown('a') then

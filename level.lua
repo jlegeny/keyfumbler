@@ -21,6 +21,10 @@ function Level.new(name, maps, delegate)
   self.layers = {}
   self.layer_count = 0
   self.delegate = delegate
+
+  self.trigger = nil
+  self.entered = nil
+
   self:restore()
 
   return self
@@ -37,8 +41,16 @@ function Level:restore()
   local leveldir = '/' .. self.name
   if love.filesystem.getInfo(leveldir, 'directory') == nil then
     print('Level does not exist', leveldir)
-    --os.exit(1)
+    os.exit(1)
   end
+
+  local scriptfile = leveldir .. '/' .. 'script.lua'
+  if not love.filesystem.getInfo(scriptfile, 'file') then
+    print('Level has no script', mapfile)
+  end
+  local chunk = love.filesystem.load(scriptfile)
+  local script = chunk()
+  self.trigger, self.entered = script.trigger, script.entered
   
   for index, mapname in pairs(self.maps) do
     local mapfile = leveldir .. '/' .. mapname .. '.map'

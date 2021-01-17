@@ -61,7 +61,6 @@ RayCaster.fast_collisions = function(map, vector)
         local door = nil
         if node.is_split then
           if obj.is_door and not obj.open then
-            obj.open_per = 0.5
             door = {
               open = posx > obj.open_per,
             }
@@ -86,7 +85,7 @@ RayCaster.fast_collisions = function(map, vector)
           local cdec = {}
           local door_posx = posx
           if obj.is_door then
-            door_posx = door_posx + obj.open_per
+            door_posx = math.max(0, door_posx - obj.open_per + 1)
           end
           for _, decal in ipairs(obj.decals) do
             if posx > decal.x and door_posx < decal.x + decal.width then
