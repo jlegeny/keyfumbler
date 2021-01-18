@@ -21,6 +21,8 @@ function Game.new()
   self.map = nil
   self.nearest_trigger = nil
   self.overlay_text = nil
+
+  self.scripts = {}
   return self
 end
 
@@ -28,6 +30,16 @@ function Game:set_level(level, layer)
   self.level = level
   self.layer = layer
   self.map = level.layers[layer]
+end
+
+function Game:run_loop(layer, id, override, script)
+  if self.scripts[layer] == nil then
+    self.scripts[layer] = {}
+  end
+  if self.scripts[layer][id] and not override then
+    return
+  end
+  self.scripts[layer][id] = script
 end
 
 function Game:set_player_position(x, y, rot)
@@ -70,6 +82,21 @@ function Game:update(dt)
   if self.nearest_trigger then
     self.overlay_text = map.triggers[self.nearest_trigger].name
   end
+
+  -- scripts
+  for layer, scripts in pairs(self.scripts) do
+    local finished_scripts = {}
+    for id, script in pairs(scripts) do
+      local finished = script(dt)
+      if finished then
+        table.insert(finished_scripts, id)
+      end
+    end
+    for _, id in pairs(finished_scripts) do
+      scripts[id] = nil
+    end
+  end
+
   -- player controls
   if love.keyboard.isDown('a') then
     self.player:rotate_ccw(dt)

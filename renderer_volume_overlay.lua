@@ -37,8 +37,8 @@ function VolumeOverlayRenderer:pre_render_canvas()
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
 
-  engyne.set_color('red')
-  love.graphics.rectangle('line', 0, 0, self.width, self.height)
+  --engyne.set_color('red')
+  --love.graphics.rectangle('line', 0, 0, self.width, self.height)
 
   -- set canvas back to original
   love.graphics.setCanvas()
