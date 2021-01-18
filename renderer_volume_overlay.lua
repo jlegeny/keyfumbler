@@ -44,7 +44,7 @@ function VolumeOverlayRenderer:pre_render_canvas()
   love.graphics.setCanvas()
 end
 
-function VolumeOverlayRenderer:draw(map, game)
+function VolumeOverlayRenderer:draw(map, game, fullscreen)
   -- love.graphics.setScissor(self.vr.x, self.vr.y, self.vr.width, self.vr.height)
   love.graphics.setCanvas(self.canvas)
   love.graphics.clear()

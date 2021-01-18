@@ -69,7 +69,7 @@ function Game:keypressed(key, unicode)
     self.player.noclip = not self.player.noclip
   elseif key == 'e' then
     if self.nearest_trigger and level.trigger then
-      level.trigger(self.nearest_trigger, map.triggers[self.nearest_trigger], self)
+      level.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
     end
   end
 end
@@ -80,7 +80,7 @@ function Game:update(dt)
   -- triggers
   self.nearest_trigger = self:get_trigger()
   if self.nearest_trigger then
-    self.overlay_text = map.triggers[self.nearest_trigger].name
+    self.overlay_text = self.map.triggers[self.nearest_trigger].name
   end
 
   -- scripts
