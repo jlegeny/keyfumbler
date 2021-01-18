@@ -206,7 +206,14 @@ function ItemRenderer:draw(map, editor_state)
     end
     self:print_stat('intensity', self.obj.intensity, 'light')
   end
- 
+
+  if self.kind == 'trigger' then
+    if self.selected == self._stat_n then
+      self.obj.r = self.obj.r + self._stat_mod * 0.1
+    end
+    self:print_stat('radius', self.obj.r, 'radius')
+  end
+
   if self.delegate ~= nil then
     if self._stat_mod ~= 0 then
       self.delegate.notify('geometry_updated')
