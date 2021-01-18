@@ -89,7 +89,7 @@ function ItemRenderer:print_stat(name, value, kind)
     name = name,
     value = value
   },
-  self.x, self.y + self._stat_n * 20)
+  self.x + 5, self.y + self._stat_n * 20 + 40)
   self._stat_n = self._stat_n + 1
 end
 
@@ -114,19 +114,26 @@ end
 function ItemRenderer:draw(map, editor_state)
   if self.id == nil then
     engyne.set_color('lightgrey', 5)
-    love.graphics.print('Select one item', self.x, self.y)
+    love.graphics.print('Select one item', self.x + 5, self.y)
+  else
+    engyne.set_color('lightgrey', 7)
+    love.graphics.print('selected ${kind} ${id}' % {
+      kind = self.kind, id = self.id
+    }, self.x + 5, self.y)
+
+    local alias = map.aliases[self.id]
+    if alias then
+      engyne.set_color('copper', 6)
+      love.graphics.print('${alias}' % { alias = alias }, self.x + 5, self.y + 20)
+    end
   end
 
   self._stat_n = 1
 
   if self.kind == 'wall' then
-    engyne.set_color('lightgrey', 7)
-    love.graphics.print('selected wall ${id}' % { id = self.id }, self.x, self.y)
   end
 
   if self.kind == 'split' then
-    engyne.set_color('lightgrey', 7)
-    love.graphics.print('selected split ${id}' % { id = self.id }, self.x, self.y)
     if self.selected == self._stat_n then
       if self._stat_mod ~= 0 then
         self.obj.is_door = not self.obj.is_door
@@ -179,9 +186,6 @@ function ItemRenderer:draw(map, editor_state)
 
 
   if self.kind == 'room' then
-    engyne.set_color('lightgrey', 7)
-    love.graphics.print('selected room ${id}' % { id = self.id }, self.x, self.y)
-
     if self.selected == self._stat_n then
       self.obj.floor_height = self.obj.floor_height + self._stat_mod * 0.125
     end
@@ -197,9 +201,6 @@ function ItemRenderer:draw(map, editor_state)
   end
 
   if self.kind == 'light' then
-    engyne.set_color('lightgrey', 7)
-    love.graphics.print('selected light ${id}' % { id = self.id }, self.x, self.y)
-
     if self.selected == self._stat_n then
       self.obj.intensity = self.obj.intensity + self._stat_mod * 1
     end

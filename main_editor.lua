@@ -241,9 +241,14 @@ function EditorMain.keypressed(key, unicode)
         e.mode = EditorMode.PROBE
       end
     elseif key == 'f5' then
-      save('scratch.map')
-    elseif key == 'f9' then
-      restore('scratch.map')
+      if e.selection_count() == 1 then
+        e.text_input = ""
+        local id, _ = next(e.selection)
+        if map.aliases[id] then
+          e.text_input = map.aliases[id]
+        end
+        e.state = State.TI_NAMING_ALIAS
+      end
     elseif key == 'backspace' then
       undoable('delete', function ()
         map:remove_objects_set(e.selection)
@@ -316,6 +321,19 @@ function EditorMain.keypressed(key, unicode)
     if key == 'escape' then
       e.state = State.IDLE
     end
+  elseif e.state == State.TI_NAMING_ALIAS then
+    if key == 'return' then
+      e.state = State.IDLE
+      local id, _ = next(e.selection)
+      map.aliases[id] = e.text_input
+      map:update_aliases()
+    elseif key == 'backspace' then
+      if e.text_input:len() > 0 then
+        e.text_input = e.text_input:sub(1, -2)
+      end
+    elseif key == 'escape' then
+      e.state = State.IDLE
+    end
   elseif e.state == State.CONFIRM then
     if key == e.confirmable.key then
       execute_action(e.confirmable.action)
@@ -329,8 +347,9 @@ function EditorMain.keypressed(key, unicode)
       e.state = State.IDLE
     end
   end
-  game:keypressed(key, unicode)
-
+  if e.state == State.IDLE or e.state == State.IC then
+    game:keypressed(key, unicode)
+  end
 end
 
 function EditorMain.mousepressed(mx, my, button, istouch)
@@ -385,7 +404,10 @@ function EditorMain.mousepressed(mx, my, button, istouch)
       love.mouse.setPosition(cx, cy)
     end
   end
+end
 
+EditorMain.textinput = function(text)
+  e.text_input = e.text_input .. text
 end
 
 function EditorMain.draw()
@@ -633,11 +655,6 @@ function EditorMain.draw()
     end
   end
 
-  if e.state == State.CONFIRM then
-    engyne.set_color('copper', 4)
-    love.graphics.print(e.confirmable.message, 10, 10)
-  end
-
   if e.sidebar == Sidebar.INFO then
     info_renderer:write('grey', 'light_at {}', raycaster.light_at(map, rx, ry))
     info_renderer:draw()
@@ -648,6 +665,23 @@ function EditorMain.draw()
   end
 
   statusbar_renderer:draw(e, mx, my, rx, ry)
+
+  local width, height = love.graphics.getDimensions()
+  if e.state == State.TI_NAMING_ALIAS or e.state == State.CONFIRM then
+    engyne.set_color('darkgrey', 0)
+    love.graphics.rectangle('fill', 0, height / 2 - 30, width, 60)
+  end
+
+  local mid_text = ''
+  if e.state == State.TI_NAMING_ALIAS then
+    engyne.set_color('copper', 6)
+    mid_text = 'Alias name [' .. e.text_input .. ']'
+  elseif e.state == State.CONFIRM then
+    engyne.set_color('copper', 4)
+    mid_text = e.confirmable.message
+  end
+  love.graphics.printf(mid_text, 20, height / 2 - 10, width - 40, 'center')
+
 
   -- Panning
   
@@ -673,7 +707,9 @@ function EditorMain.draw()
   local dt = love.timer.getDelta()
   volume_renderer:draw(map, game, dt, fullscreen)
   volume_overlay_renderer:draw(map, game, fullscreen)
-  game:update(dt)
+  if e.state == State.IDLE or e.state == State.IC then
+    game:update(dt)
+  end
 
 end
 

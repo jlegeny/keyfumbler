@@ -41,9 +41,11 @@ function Map.new(params)
   self.lights = {}
   self.things = {}
   self.triggers = {}
+  self.aliases = {}
   self.volatile = {
     bsp = {},
     leaves = {},
+    raliases = {},
     delegate = nil,
   }
   self:update_bsp()
@@ -93,6 +95,9 @@ function Map:fix()
   if self.triggers == nil then
     self.triggers = {}
   end
+  if self.aliases == nil then
+    self.aliases = {}
+  end
   if self.volatile == nil then
     self.volatile = {
       bsp = {},
@@ -109,6 +114,7 @@ function Map:from(other)
   self.splits = other.splits
   self.lights = other.lights
   self.things = other.things
+  self.aliases = other.aliases
   self.triggers = other.triggers
 end
 
@@ -129,10 +135,24 @@ function Map:get_object_table(kind)
   end
 end
 
+function Map:update_aliases()
+  self.volatile.raliases = {}
+  for id, alias in pairs(self.aliases) do
+    if self.volatile.raliases[alias] then
+      io.stderr:write('Alias name [' .. 
+      alias .. '] reused for id = ' .. id .. 
+      ' and ' .. self.volatile.raliases[alias] .. '\n')
+    end
+    self.volatile.raliases[alias] = id
+  end
+end
+
 function Map:add_object(id, obj)
   local table = self:get_object_table(obj.kind)
   table[id] = obj
+  self.aliases[id] = nil
   self:update_bsp()
+  self:update_aliases()
 end
 
 function Map:remove_objects_set(objects)

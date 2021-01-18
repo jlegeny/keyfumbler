@@ -1,4 +1,6 @@
 function trigger(id, trigger, game)
+  local alias = game.map.aliases[id]
+
   print('triggered', id)
   if id == 621 then
     local door = game.map.splits[608]
@@ -27,7 +29,12 @@ function trigger(id, trigger, game)
 end
 
 function entered(room_id, from_id, game)
-  print('entered room', room_id, 'from', from_id)
+  local alias = game.map.aliases[room_id]
+  local alias_str = ''
+  if alias then
+    alias_str = alias
+  end
+  print('entered room ' .. room_id .. ' [' .. alias_str .. '] from ' .. from_id)
 end
 
 local script = {

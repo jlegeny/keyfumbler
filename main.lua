@@ -21,6 +21,10 @@ function love.mousepressed(mx, my, button, istouch)
   main.mousepressed(mx, my, button, istouch)
 end
 
+function love.textinput(text)
+  main.textinput(text)
+end
+
 function love.draw()
   main.draw()
 end

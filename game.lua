@@ -124,7 +124,7 @@ function Game:update(dt)
   end
  
   if new_room_id ~= prev_room_id then
-    self.level.entered(new_room_id, prev_room_id)
+    self.level.entered(new_room_id, prev_room_id, self)
   end
 end
 

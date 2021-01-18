@@ -2,13 +2,14 @@ State = {
   IDLE = 0,
   CONFIRM = 1,
   DUMP = 2,
-  IC_IDLE = 100,
+  IC = 100,
   IC_DRAWING_WALL = 101,
   IC_DRAWING_WALL_NORMAL = 102,
   IC_DRAWING_SELECTION = 103,
   IC_DRAWING_SPLIT = 104,
   IC_DRAWING_VISIBILITY = 105,
   IC_DRAWING_CONNECTIVITY = 106,
+  TI_NAMING_ALIAS = 201,
 }
 
 EditorMode = {
@@ -69,6 +70,7 @@ function EditorState.new()
   -- intermittent state
   self.current_rline = nil
   self.selection_line_r = nil
+  self.text_input = ""
 
   return self
 end
@@ -160,7 +162,9 @@ function EditorState:state_str()
     return "Probing Visibility"
   elseif self.state == State.IC_DRAWING_CONNECTIVITY then
     return "Probing Connectivity"
-   else
+  elseif self.state == State.TI_NAMING_ALIAS then
+    return "Input Alias"
+  else
     return "Unknown State"
   end
 end
