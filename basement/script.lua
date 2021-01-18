@@ -26,8 +26,8 @@ function trigger(id, trigger, game)
   end
 end
 
-function entered(room, from, game)
-  print('entered room', room)
+function entered(room_id, from_id, game)
+  print('entered room', room_id, 'from', from_id)
 end
 
 local script = {

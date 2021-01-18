@@ -26,12 +26,17 @@ function Player.new()
   self.speed = 5
   self.rot_speed = math.pi
 
+  self.region = nil
+
   self.fov = math.pi / 2
   return self
 end
 
 function Player:update(map)
-  local region = raycaster.get_region_node(map.volatile.bsp, self.rx, self.ry)
+  local region = map:room_node(raycaster.get_region_node(map.volatile.bsp, self.rx, self.ry))
+  if region then
+    self.region = region
+  end
   if region.floor_height ~= nil then
     self.z = region.floor_height
   end

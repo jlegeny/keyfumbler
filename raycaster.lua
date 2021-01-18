@@ -88,7 +88,7 @@ RayCaster.fast_collisions = function(map, vector)
             door_posx = math.max(0, door_posx - obj.open_per + 1)
           end
           for _, decal in ipairs(obj.decals) do
-            if posx > decal.x and door_posx < decal.x + decal.width then
+            if door_posx > decal.x and door_posx < decal.x + decal.width then
               table.insert(cdec, {
                 name = decal.name,
                 posx = (door_posx - decal.x) / decal.width,

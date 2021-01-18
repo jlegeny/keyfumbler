@@ -46,6 +46,7 @@ function Game:set_player_position(x, y, rot)
   self.player.rx = x
   self.player.ry = y
   self.player.rot = rot
+  self.player:update(self.map)
 end
 
 function Game:eye_vector()
@@ -68,8 +69,8 @@ function Game:keypressed(key, unicode)
   if key == 'insert' then
     self.player.noclip = not self.player.noclip
   elseif key == 'e' then
-    if self.nearest_trigger and level.trigger then
-      level.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+    if self.nearest_trigger and self.level.trigger then
+      self.level.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
     end
   end
 end
@@ -97,6 +98,12 @@ function Game:update(dt)
     end
   end
 
+  -- before movement
+  local prev_room_id = 0
+  if self.player.region then
+    prev_room_id = self.player.region.room_id
+  end
+ 
   -- player controls
   if love.keyboard.isDown('a') then
     self.player:rotate_ccw(dt)
@@ -109,7 +116,16 @@ function Game:update(dt)
   elseif love.keyboard.isDown('s') then
     self.player:step_backward(dt, self.map)
   end
-  self.player:update(self.map)
+
+  -- after movement
+ local new_room_id = 0
+  if self.player.region then
+    new_room_id = self.player.region.room_id
+  end
+ 
+  if new_room_id ~= prev_room_id then
+    self.level.entered(new_room_id, prev_room_id)
+  end
 end
 
 return Game
