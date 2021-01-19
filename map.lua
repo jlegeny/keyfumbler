@@ -1,11 +1,12 @@
 local util = require 'util'
 
 local geom = require 'geom'
-local Light = require 'light'
 local lines = require 'lines'
-local Line = require 'line'
-local Wall = require 'wall'
 local raycaster = require 'raycaster'
+local Line = require 'line'
+
+local Light = require 'object/light'
+local Wall = require 'object/wall'
 
 local EPSILON = 0.001
 
