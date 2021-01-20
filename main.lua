@@ -1,4 +1,5 @@
-local main = require 'edytor/main_editor'
+--local main = require 'edytor/main_editor'
+local main = require 'keygen/main_keygen'
 -- local main = require 'main_game'
 
 function love.load()

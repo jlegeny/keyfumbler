@@ -1,28 +1,24 @@
-local Level = {}
-Level.__index = Level
+local Trigger = {}
+Trigger.__index = Trigger
 
-setmetatable(Level, {
+setmetatable(Trigger, {
   __call = function (cls, ...)
     return cls.new(...)
   end,
 })
 
-function Level.new()
+function Trigger.new(x, y, r, name)
   local self = {}
-  setmetatable(self, Level)
-  self.maps = {}
-  self.script = nil
-  self.data = {}
+  setmetatable(self, Trigger)
+  self.kind = 'trigger'
+  self.x = x
+  self.y = y
+  self.r = r
+  self.name = name
   return self
 end
 
-function Level:restore(maps)
-end
-
-function Level:save()
-end
-
-return Level
+return Trigger
 
 
 
