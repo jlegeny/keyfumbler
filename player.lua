@@ -27,6 +27,7 @@ function Player.new()
   self.rot_speed = math.pi
 
   self.region = nil
+  self.inventory = {}
 
   self.fov = math.pi / 2
   return self

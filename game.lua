@@ -22,6 +22,19 @@ function Game.new()
   self.nearest_trigger = nil
   self.overlay_text = nil
 
+  self.state = {
+    keyring = {
+      open = false,
+      max_size = 3,
+      selected_keyring = 0,
+      selected_key = 0,
+    }
+  }
+
+  self.volatile = {
+    key_count = 0,
+  }
+
   self.scripts = {}
   return self
 end
@@ -49,6 +62,15 @@ function Game:set_player_position(x, y, rot)
   self.player:update(self.map)
 end
 
+function Game:update_inventory()
+  self.volatile.key_count = 0
+  for id, object in pairs(self.player.inventory) do
+    if object.kind == 'key' then
+      self.volatile.key_count = self.volatile.key_count + 1
+    end
+  end
+end
+
 function Game:eye_vector()
   return Line(self.player.rx, self.player.ry, self.player.rx + math.sin(self.player.rot), self.player.ry + math.cos(self.player.rot))
 end
@@ -68,9 +90,31 @@ end
 function Game:keypressed(key, unicode)
   if key == 'insert' then
     self.player.noclip = not self.player.noclip
-  elseif key == 'e' then
-    if self.nearest_trigger and self.level.trigger then
+  end
+
+  if self.nearest_trigger and self.level.trigger then
+    if key == 'e' then
       self.level.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+    end
+  end
+
+  if self.state.keyring.open then
+    local sk = self.state.keyring
+    local keyring_count = math.ceil(self.volatile.key_count / sk.max_size)
+    local selected_keyring_size = sk.max_size
+    if sk.selected_keyring == keyring_count - 1 then
+      selected_keyring_size = self.volatile.key_count % sk.max_size
+      if selected_keyring_size == 0 then
+        selected_keyring_size = 3
+      end
+    end
+    if key == 'right' then
+      sk.selected_key = (sk.selected_key + 1) % selected_keyring_size
+    elseif key == 'left' then
+      sk.selected_key = (sk.selected_key - 1) % selected_keyring_size
+    elseif key == 'pagedown' then
+      sk.selected_keyring = (sk.selected_keyring + 1) % keyring_count
+      sk.selected_key = 0
     end
   end
 end

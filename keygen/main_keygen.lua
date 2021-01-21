@@ -61,6 +61,13 @@ canvas:setFilter('nearest', 'nearest')
 
 function KeygenMain.load()
   game = Game:new()
+  game.player.inventory = {
+    [100] = brass_key,
+    [101] = copper_key,
+    [102] = steel_key,
+  }
+  game.state.keyring.open = true
+  game:update_inventory()
 
   -- window
   love.window.setTitle("Keygen")
@@ -74,7 +81,7 @@ function KeygenMain.load()
   -- fonts
   engyne.set_default_font()
 
-  empty_renderer:setup(0, 0 , WINDOW_WIDTH, WINDOW_HEIGHT)
+  empty_renderer:setup(0, 0, 320, 240)
   brass_key:render()
   copper_key:render()
   steel_key:render()
@@ -91,6 +98,7 @@ function KeygenMain.keypressed(key, unicode)
   if key == 'r' then
     love.event.quit('restart')
   end
+  game:keypressed(key, unicode)
 end
 
 function KeygenMain.mousepressed(mx, my, button, istouch)
@@ -101,29 +109,14 @@ end
 
 
 function KeygenMain.draw()
-  love.graphics.setCanvas(canvas)
-  love.graphics.clear()
-  engyne.reset_color()
-  love.graphics.setBlendMode('alpha')
-
-  
-  --empty_renderer:draw(true)
-  --volume_overlay_renderer:draw(nil, game, true)
-
-  brass_key:draw_side(50, 50, math.pi / 4 * 0, 1)
-  brass_key:draw_front(200, 50, math.pi / 4 * 0, 1)
-  copper_key:draw_side(50, 100, math.pi / 4 * 0, 1)
-  copper_key:draw_front(200, 100, math.pi / 4 * 0, 1)
-  steel_key:draw_side(50, 150, math.pi / 4 * 0, 1)
-  steel_key:draw_front(200, 150, math.pi / 4 * 0, 1)
-
+  local dt = love.timer.getDelta()
 
   love.graphics.setCanvas()
   love.graphics.clear()
   engyne.reset_color()
-  love.graphics.setBlendMode('alpha')
-  love.graphics.draw(canvas, 0, 0, 0, 3, 3)
 
+  empty_renderer:draw(true)
+  volume_overlay_renderer:draw(nil, game, dt, true)
 end
 
 return KeygenMain

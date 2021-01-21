@@ -44,6 +44,7 @@ function Key.new(key_type, material, body, pinning, wording)
 
   self.canvas_side = love.graphics.newCanvas(self.WIDTH, self.HEIGHT)
   self.canvas_front = love.graphics.newCanvas(self.DEPTH, self.HEIGHT)
+  self.canvas_outline = love.graphics.newCanvas(self.WIDTH, self.HEIGHT)
   self:carve()
   self:render()
   
@@ -180,11 +181,15 @@ function Key:render()
 
   engyne.reset_color()
 
+  local stamp_points = {}
   local planes = {}
   for z, _ in pairs(self.voxels) do
     table.insert(planes, z)
   end
   table.sort(planes)
+
+  local minx, maxx = self.WIDTH, 0
+  local miny, maxy = self.HEIGHT, 0 
 
   local last_material = nil
   for zi = #planes, 1, -1 do
@@ -193,6 +198,8 @@ function Key:render()
     local points = {}
     for y, line in pairs(plane) do
       for x, material in pairs(line) do
+        minx, maxx = math.min(minx, x), math.max(maxx, x)
+        miny, maxy = math.min(miny, y), math.max(maxy, y)
         if material ~= last_material then
           if #points > 0 then
             Key.material_color(last_material, 7, z)
@@ -208,6 +215,14 @@ function Key:render()
     love.graphics.points(points)
   end
 
+  love.graphics.setCanvas(self.canvas_outline)
+  love.graphics.clear()
+  love.graphics.setBlendMode('replace')
+
+  engyne.set_color('red')
+  love.graphics.setLineWidth(2)
+  love.graphics.rectangle('line', minx + 0.5, minx + 0.5, maxx - minx - 1, maxy - miny - 1)
+ 
   love.graphics.setCanvas(self.canvas_front)
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
@@ -239,6 +254,11 @@ end
 function Key:draw_side(x, y, angle, scale)
   engyne.reset_color()
   love.graphics.draw(self.canvas_side, x, y, angle, scale, scale, self.hole_x, self.hole_y)
+end
+
+function Key:draw_outline(x, y, angle, scale)
+  engyne.reset_color()
+  love.graphics.draw(self.canvas_outline, x, y, angle, scale * 1.1, scale * 1.1, self.hole_x, self.hole_y)
 end
 
 function Key:draw_front(x, y, angle, scale)
