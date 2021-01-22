@@ -93,7 +93,7 @@ function VolumeOverlayRenderer:render_keyring(game)
 end
 
 
-local VRR = 1
+local VRR = 4
 local VRT = 500
 
 function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
@@ -135,27 +135,29 @@ function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
     self.ring_pos[skr] = 0
   end
 
-  local positive_diff = self.target_ring_pos - self.ring_pos[skr]
-  local negative_diff = self.target_ring_pos + 3 - self.ring_pos[skr]
+  local diff = self.target_ring_pos - self.ring_pos[skr]
+  local diffn = (self.target_ring_pos - 3) - self.ring_pos[skr]
+  local diffp = (self.target_ring_pos + 3) - self.ring_pos[skr]
 
-  if math.abs(positive_diff) < math.abs(negative_diff) then
-    pos_diff = positive_diff
-  else
-    pos_diff = negative_diff
+  local pos_diff = diff
+  if math.abs(diffn) < math.abs(diff) then
+    pos_diff = diffn
+  elseif math.abs(diffp) < math.abs(diff) then
+    pos_diff = diffp
   end
 
-  --if angle_diff > math.pi then
-  --  angle_diff = angle_diff - math.pi
-  --elseif angle_diff < -math.pi then
-  --  angle_diff = angle_diff + math.pi
-  --end
-
   if pos_diff > 0 then
-    print(self.target_ring_pos, self.ring_pos[skr], pos_diff)
-    self.ring_pos[skr] = math.min(self.ring_pos[skr] + VRR * dt, self.target_ring_pos)
+    pos_diff = pos_diff - VRR * dt
+    self.ring_pos[skr] = self.ring_pos[skr] + VRR * dt
+    if pos_diff <= 0 then
+      self.ring_pos[skr] = self.target_ring_pos
+    end
   elseif pos_diff < 0 then
-    print(self.target_ring_pos, self.ring_pos[skr], pos_diff)
-    self.ring_pos[skr] = math.max(self.ring_pos[skr] - VRR * dt, self.target_ring_pos)
+    pos_diff = pos_diff + VRR * dt
+    self.ring_pos[skr] = self.ring_pos[skr] - VRR * dt
+    if pos_diff >= 0 then
+      self.ring_pos[skr] = self.target_ring_pos
+    end
   end
 
 

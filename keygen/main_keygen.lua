@@ -56,6 +56,8 @@ setmetatable(KeygenMain, {
   end,
 })
 
+local step = false
+
 local canvas = love.graphics.newCanvas(320, 240)
 canvas:setFilter('nearest', 'nearest')
 
@@ -97,6 +99,8 @@ end
 function KeygenMain.keypressed(key, unicode)
   if key == 'r' then
     love.event.quit('restart')
+  elseif key == 'space' then
+    step = true
   end
   game:keypressed(key, unicode)
 end
@@ -109,7 +113,12 @@ end
 
 
 function KeygenMain.draw()
-  local dt = love.timer.getDelta()
+  -- local dt = love.timer.getDelta()
+  local dt = 0
+  if true then
+    dt = 0.016
+    step = false
+  end
 
   love.graphics.setCanvas()
   love.graphics.clear()
