@@ -15,36 +15,6 @@ volume_overlay_renderer = VolumeOverlayRenderer(empty_renderer)
 WINDOW_WIDTH = 960
 WINDOW_HEIGHT = 720
 
-local brass_key = Key(Key.Type.PIN_TUMBLER, Key.Material.BRASS, Key.Body.FAB, {
-   10, 5, 8, 4, 7}, {
-     {{0, 1, 2, 3, 4}, 1},
-     {{3, 4}, 5},
-     {{1, 2, 3}, 1},
-     {{0}, 6},
-     {{1}, 2},
-     {{2}, 2},
-     {{3}, 2},
-     {{4}, 1},
-   })
-
-local copper_key = Key(Key.Type.PIN_TUMBLER, Key.Material.COPPER, Key.Body.FAB, {
-   4, 8, 2, 12, 3}, {
-     {{0, 1, 2, 3, 4}, 2},
-     {{0, 1}, 6},
-     {{0, 1, 2, 3, 4}, 2},
-     {{3, 4}, 10},
-   })
-
-local steel_key = Key(Key.Type.PIN_TUMBLER, Key.Material.STEEL, Key.Body.FAB, {
-   6, 5, 8, 6}, {
-     {{1, 2}, 3},
-     {{2, 3}, 2},
-     {{3, 4}, 4},
-     {{2, 3}, 2},
-     {{1, 2}, 12},
-   })
-
-
 -- OBJECT
 
 local KeygenMain = {}
@@ -64,11 +34,17 @@ canvas:setFilter('nearest', 'nearest')
 function KeygenMain.load()
   game = Game:new()
   game.player.inventory = {
-    [100] = brass_key,
-    [101] = copper_key,
-    [102] = steel_key,
   }
-  game.state.keyring.open = true
+
+  local kid = 100
+  for i = 1, 13 do
+    local key = Key.random()
+    game.player.inventory[kid] = key
+    kid = kid + 1
+  end
+
+
+  game.keyring.open = true
   game:update_inventory()
 
   -- window
@@ -83,10 +59,13 @@ function KeygenMain.load()
   -- fonts
   engyne.set_default_font()
 
+  for id, object in pairs(game.player.inventory) do
+    if object.kind == 'key' then
+      object:render()
+    end
+  end
+
   empty_renderer:setup(0, 0, 320, 240)
-  brass_key:render()
-  copper_key:render()
-  steel_key:render()
 end
 
 function KeygenMain.resize(w, h)

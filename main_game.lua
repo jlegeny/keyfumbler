@@ -1,5 +1,6 @@
 local engyne = require 'engyne'
 local Game = require 'game'
+local Key = require 'object/key'
 local Level = require 'level'
 
 local VolumeRenderer = require 'renderer_volume'
@@ -16,6 +17,7 @@ image_data = {}
 level = Level('basement', {
   [0] = 'scratch',
   [1] = 'map01',
+  [2] = 'map02',
 })
 
 -- MAP DELEGATE
@@ -40,8 +42,8 @@ end
 
 -- CONSTANTS
 
-WINDOW_WIDTH = 320
-WINDOW_HEIGHT = 240
+WINDOW_WIDTH = 960
+WINDOW_HEIGHT = 720
 
 
 -- OBJECT
@@ -79,10 +81,19 @@ function GameMain.load()
 
   -- fonts
   engyne.set_default_font()
-  game:set_player_position(51.5, 54.5, math.pi / 2)
   game:set_level(level, 0)
+  game:set_player_position(51.5, 54.5, math.pi / 2)
 
-  volume_renderer:setup(0, 0 , WINDOW_WIDTH, WINDOW_HEIGHT, image_data)
+  local kid = 10000
+  for i = 1, 13 do
+    local key = Key.random()
+    game.player.inventory[kid] = key
+    kid = kid + 1
+    key:render()
+  end
+  game:update_inventory()
+
+  volume_renderer:setup(0, 0 , 320, 240, image_data)
 end
 
 function GameMain.resize(w, h)
@@ -102,10 +113,13 @@ end
 function GameMain.mousepressed(mx, my, button, istouch)
 end
 
+GameMain.textinput = function(text)
+end
+
 function GameMain.draw()
   local dt = love.timer.getDelta()
   volume_renderer:draw(game.map, game, dt, true)
-  volume_overlay_renderer:draw(game.map, game, true)
+  volume_overlay_renderer:draw(game.map, game, dt, true)
   game:update(dt)
 end
 

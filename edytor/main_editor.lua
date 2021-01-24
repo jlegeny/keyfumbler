@@ -48,8 +48,9 @@ image_data = {}
 level = Level('basement', {
   [0] = 'scratch',
   [1] = 'map01',
+  [2] = 'map02',
 })
-mapindex = 0
+mapindex = 2
 map = nil
 game = nil
 level_renderer = LevelRenderer()
@@ -77,6 +78,11 @@ delegate.notify = function(event)
     map:update_bsp()
   elseif event == 'map_updated' then
     volume_renderer:invalidate_light_cache()
+  elseif event == 'layer_changed' then
+    map = game.map
+    e.undo_stack = {}
+    e.redo_stack = {}
+    volume_renderer:invalidate_light_cache()
   end
 end
 
@@ -97,6 +103,7 @@ end
 function setmap()
   map = level.layers[mapindex]
   game:set_level(level, mapindex)
+  game:update_player()
   volume_renderer:invalidate_light_cache()
   e.undo_stack = {}
   e.redo_stack = {}
@@ -173,6 +180,7 @@ setmetatable(EditorMain, {
 
 function EditorMain.load()
   game = Game:new()
+  game.delegate = delegate
 
   -- window
   love.window.setTitle("Engyne Edytor")
@@ -196,10 +204,10 @@ function EditorMain.load()
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
-  level_renderer.zoom_factor = 30
-  level_renderer.offset_x = -40
-  level_renderer.offset_y = -40
-  level_renderer.snap = 2
+  level_renderer.zoom_factor = 40
+  level_renderer.offset_x = -45
+  level_renderer.offset_y = -45
+  level_renderer.snap = 4
   level_renderer.mode = 'map'
 
   setup(WINDOW_WIDTH, WINDOW_HEIGHT)
@@ -293,10 +301,16 @@ function EditorMain.keypressed(key, unicode)
         message = 'Press [delete] again to clear all',
         key = 'delete',
       }
-    elseif key == 'pagedown' then
-      mapindex = (mapindex + 1) % level.layer_count
-      print(mapindex, level.layer_count)
+    elseif key == 'pageup' then
+      e:save_selection(mapindex)
+      mapindex = (mapindex - 1) % level.layer_count
       setmap()
+      e:restore_selection(mapindex)
+    elseif key == 'pagedown' then
+      e:save_selection(mapindex)
+      mapindex = (mapindex + 1) % level.layer_count
+      setmap()
+      e:restore_selection(mapindex)
     elseif key == 'down' then
       if e.sidebar == Sidebar.ITEM then
         item_renderer:next_stat()
@@ -313,6 +327,8 @@ function EditorMain.keypressed(key, unicode)
       if e.sidebar == Sidebar.ITEM then
         item_renderer:inc_stat()
       end
+    elseif key == 'l' then
+      volume_renderer.flat_light = not volume_renderer.flat_light
     elseif key == '/' then
       e.state = State.DUMP
     end
@@ -604,7 +620,7 @@ function EditorMain.draw()
               local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
               local nx, ny = line:norm_vector()
               local midx, midy = line:mid()
-              local PROBE_SIZE = 0.5
+              local PROBE_SIZE = 1/32
               local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
               local other = raycaster.get_region_node(map.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
               if region.id == other.id then
@@ -706,7 +722,7 @@ function EditorMain.draw()
 
   local dt = love.timer.getDelta()
   volume_renderer:draw(map, game, dt, fullscreen)
-  volume_overlay_renderer:draw(map, game, fullscreen)
+  volume_overlay_renderer:draw(map, game, dt, fullscreen)
   if e.state == State.IDLE or e.state == State.IC then
     game:update(dt)
   end

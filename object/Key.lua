@@ -23,6 +23,48 @@ Key.Body = {
   FAB = 1,
 }
 
+Key.Keyway = {
+  [Key.Body.FAB] = {
+    [20] = {
+      {{0, 1, 2, 3, 4}, 2},
+      {{0, 1}, 3},
+      {{0, 1, 2, 3}, 1},
+      {{1, 2, 3, 4}, 1},
+      {{3, 4}, 3},
+      {{1, 2, 3, 4}, 1},
+      {{0, 1, 2, 3}, 1},
+      {{0, 1}, 2},
+      {{1, 2}, 2},
+      {{2, 3}, 4},
+    },
+    [32] = {
+      {{0, 1, 2, 3, 4}, 2},
+      {{0, 1}, 3},
+      {{0, 1, 2, 3}, 1},
+      {{1, 2, 3, 4}, 1},
+      {{3, 4}, 6},
+      {{1, 2, 3, 4}, 1},
+      {{0, 1, 2, 3}, 1},
+      {{0, 1}, 2},
+      {{1, 2}, 2},
+     },
+    [260] = {
+      {{0, 1, 2, 3, 4}, 1},
+      {{1, 2, 3}, 1},
+      {{1, 2}, 1},
+      {{0, 1}, 1},
+      {{0, 1, 2}, 1},
+      {{1, 2, 3}, 1},
+      {{2, 3, 4}, 1},
+      {{3, 4}, 2},
+      {{2, 3}, 1},
+      {{1, 2}, 2},
+      {{2, 3}, 3},
+      {{3, 4}, 3},
+    },
+  },
+}
+
 Key.WIDTH = 180
 Key.HEIGHT = 60
 Key.DEPTH = 12
@@ -47,7 +89,7 @@ function Key.new(key_type, material, body, pinning, wording)
   self.canvas_outline = love.graphics.newCanvas(self.WIDTH, self.HEIGHT)
   self:carve()
   self:render()
-  
+
   return self
 end
 
@@ -164,7 +206,7 @@ function Key:carve()
 end
 
 function Key.material_color(material, light, distance)
-  local intensity = math.max(2, math.min(7, light - distance))
+  local intensity = math.max(0, math.min(7, light - distance))
   if material == Key.Material.BRASS then
     engyne.set_color('brass', intensity)
   elseif material == Key.Material.COPPER then
@@ -222,7 +264,7 @@ function Key:render()
   engyne.set_color('red')
   love.graphics.setLineWidth(2)
   love.graphics.rectangle('line', minx + 0.5, minx + 0.5, maxx - minx - 1, maxy - miny - 1)
- 
+
   love.graphics.setCanvas(self.canvas_front)
   love.graphics.clear()
   love.graphics.setBlendMode('alpha')
@@ -237,11 +279,12 @@ function Key:render()
           closest_x = x
         end
       end
-      if closest_x then
+      if closest_x and closest_x > 60 then
         Key.material_color(line[closest_x], 7, math.floor((self.WIDTH - closest_x) / 10))
 
         --engyne.set_color('brass', math.max(2, 7 - math.floor(closest_x / 10)))
-        love.graphics.points(z, y)
+        local offx = math.floor((self.DEPTH - (planes[#planes] - planes[1]))/ 2)
+        love.graphics.points(z + offx, y)
       end
     end
   end
@@ -266,6 +309,34 @@ function Key:draw_front(x, y, angle, scale)
   love.graphics.draw(self.canvas_front, x, y, angle, scale, scale, 0, self.hole_y)
 end
 
+
+function Key.random()
+
+  local key_type = Key.Type.PIN_TUMBLER
+  local material = math.random(Key.Material.BRASS, Key.Material.STEEL)
+  local body = Key.Body.FAB
+
+  local pinning = {}
+  if key_type == Key.Type.PIN_TUMBLER then
+    local pins = math.random(3, 6)
+    for pin = 1, pins do
+      table.insert(pinning, math.random(4, 12))
+    end
+  end
+
+  local wid, w = next(Key.Keyway[body])
+  local wording = w
+  local iw = 1
+  while w do
+    if math.random() < 1/iw then
+      wording = w
+    end
+    iw = iw + 1
+    wid, w = next(Key.Keyway[body], wid)
+  end
+
+  return Key.new(key_type, material, body, pinning, wording)
+end
 
 return Key
 

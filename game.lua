@@ -22,13 +22,10 @@ function Game.new()
   self.nearest_trigger = nil
   self.overlay_text = nil
 
-  self.state = {
-    keyring = {
-      open = false,
-      max_size = 3,
-      selected_keyring = 0,
-      selected_key = 0,
-    }
+  self.keyring = {
+    state = 'closed',
+    position = 0,
+    selected_key = 0,
   }
 
   self.volatile = {
@@ -43,6 +40,16 @@ function Game:set_level(level, layer)
   self.level = level
   self.layer = layer
   self.map = level.layers[layer]
+end
+
+function Game:set_layer(layer)
+  self.layer = layer
+  self.map = level.layers[layer]
+  self:update_player()
+
+  if self.delegate then
+    self.delegate.notify('layer_changed')
+  end
 end
 
 function Game:run_loop(layer, id, override, script)
@@ -71,6 +78,10 @@ function Game:update_inventory()
   end
 end
 
+function Game:update_player()
+  self.player:update(self.map)
+end
+
 function Game:eye_vector()
   return Line(self.player.rx, self.player.ry, self.player.rx + math.sin(self.player.rot), self.player.ry + math.cos(self.player.rot))
 end
@@ -90,6 +101,7 @@ end
 function Game:keypressed(key, unicode)
   if key == 'insert' then
     self.player.noclip = not self.player.noclip
+    print('noclip', self.player.noclip)
   end
 
   if self.nearest_trigger and self.level.trigger then
@@ -98,23 +110,21 @@ function Game:keypressed(key, unicode)
     end
   end
 
-  if self.state.keyring.open then
-    local sk = self.state.keyring
-    local keyring_count = math.ceil(self.volatile.key_count / sk.max_size)
-    local selected_keyring_size = sk.max_size
-    if sk.selected_keyring == keyring_count - 1 then
-      selected_keyring_size = self.volatile.key_count % sk.max_size
-      if selected_keyring_size == 0 then
-        selected_keyring_size = 3
-      end
+  if key == 'f' then
+    local kr = self.keyring
+    if kr.state == 'closed' or kr.state == 'closing' then
+      kr.state = 'opening'
+    else
+      kr.state = 'closing'
     end
+  end
+
+  if self.keyring.state == 'open' then
+    local sk = self.keyring
     if key == 'right' then
-      sk.selected_key = (sk.selected_key + 1) % selected_keyring_size
+      sk.selected_key = (sk.selected_key + 1) % self.volatile.key_count
     elseif key == 'left' then
-      sk.selected_key = (sk.selected_key - 1) % selected_keyring_size
-    elseif key == 'pagedown' then
-      sk.selected_keyring = (sk.selected_keyring + 1) % keyring_count
-      sk.selected_key = 0
+      sk.selected_key = (sk.selected_key - 1) % self.volatile.key_count
     end
   end
 end
@@ -168,7 +178,7 @@ function Game:update(dt)
   end
  
   if new_room_id ~= prev_room_id then
-    self.level.entered(new_room_id, prev_room_id, self)
+    self.level.entered(self.layer, new_room_id, prev_room_id, self)
   end
 end
 

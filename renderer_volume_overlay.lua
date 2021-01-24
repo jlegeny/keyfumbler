@@ -21,11 +21,8 @@ function VolumeOverlayRenderer.new(volume_renderer)
 
   self.mode = 'lines'
 
-  self.ring_pos = {}
-  self.ring_offset_x = 0
-
+  self.ring_pos = 0
   self.target_ring_pos = 0
-  self.target_ring_offset_x = 0
 
   return self
 end
@@ -55,46 +52,39 @@ end
 
 function VolumeOverlayRenderer:render_keyring(game)
 
-  local posy = 50
+  local posy = 200 - game.keyring.position * 100
 
-  local keys_per_ring = game.state.keyring.max_size
   local key_n = 0
-  local keyring_n = 0
 
+  local selected_key = nil
   for id, object in pairs(game.player.inventory) do
     if not object.kind == 'key' then
       goto continue
     end
-    if not self.ring_pos[keyring_n] then
-      self.ring_pos[keyring_n] = 0
-    end
 
-    local angle = 2 * math.pi * (key_n - self.ring_pos[keyring_n]) / keys_per_ring - math.pi / 2
-    local center_x = self.width / 2 + math.cos(angle) * 20
-    local center_y = self.height / 2 + math.sin(angle) * 20
+    local angle = 2 * math.pi * (key_n - self.ring_pos) / (game.volatile.key_count + 1) - math.pi / 2
+    local center_x = self.width / 2 + math.cos(angle) * 30
+    local center_y = self.height / 2 + math.sin(angle) * 30 + posy
 
-    local kx = center_x + keyring_n * 100 - self.ring_offset_x
-    
-    if keyring_n == game.state.keyring.selected_keyring and key_n == game.state.keyring.selected_key then
-      Key.draw_outline(object, kx, center_y, angle, 0.5)
+    if key_n == game.keyring.selected_key then
+      Key.draw_outline(object, center_x, center_y, angle, 0.5)
       self.target_ring_pos = key_n
-      self.target_ring_offset_x = keyring_n * 100
+      selected_key = object
     end
 
-    Key.draw_side(object, kx, center_y, angle, 0.5)
+    Key.draw_side(object, center_x, center_y, angle, 0.5)
     
     key_n = key_n + 1
-    if key_n == keys_per_ring then
-      key_n = 0
-      keyring_n = keyring_n + 1
-    end
     ::continue::
+  end
+  if selected_key then
+    Key.draw_front(selected_key, self.width / 2 - 6, self.height / 2 + posy, 0, 1)
   end
 end
 
 
-local VRR = 4
-local VRT = 500
+local VRR = 12
+local VKO = 5
 
 function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
   -- love.graphics.setScissor(self.vr.x, self.vr.y, self.vr.width, self.vr.height)
@@ -107,8 +97,21 @@ function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
     love.graphics.printf(game.overlay_text, self.width / 2 - 100, 10, 200, 'center')
   end
 
-  if game.state.keyring.open then
+  if game.keyring.state ~= 'closed'  then
     self:render_keyring(game)
+    if game.keyring.state == 'opening' then
+      game.keyring.position = game.keyring.position + dt * VKO
+      if game.keyring.position >= 1 then
+        game.keyring.position = 1
+        game.keyring.state = 'open'
+      end
+    elseif game.keyring.state == 'closing' then
+      game.keyring.position = game.keyring.position - dt * VKO
+      if game.keyring.position <= 0 then
+        game.keyring.position = 0
+        game.keyring.state = 'closed'
+      end
+    end
   end
 
   love.graphics.setCanvas()
@@ -124,20 +127,9 @@ function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
   end
 
   -- update keyring
-  if self.ring_offset_x < self.target_ring_offset_x then
-    self.ring_offset_x = math.min(self.ring_offset_x + VRT * dt, self.target_ring_offset_x)
-  elseif self.ring_offset_x > self.target_ring_offset_x then
-    self.ring_offset_x = math.max(self.ring_offset_x - VRT * dt, self.target_ring_offset_x)
-  end
-
-  local skr = game.state.keyring.selected_keyring
-  if not self.ring_pos[skr] then
-    self.ring_pos[skr] = 0
-  end
-
-  local diff = self.target_ring_pos - self.ring_pos[skr]
-  local diffn = (self.target_ring_pos - 3) - self.ring_pos[skr]
-  local diffp = (self.target_ring_pos + 3) - self.ring_pos[skr]
+  local diff = self.target_ring_pos - self.ring_pos
+  local diffn = (self.target_ring_pos - game.volatile.key_count) - self.ring_pos
+  local diffp = (self.target_ring_pos + game.volatile.key_count) - self.ring_pos
 
   local pos_diff = diff
   if math.abs(diffn) < math.abs(diff) then
@@ -148,15 +140,15 @@ function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
 
   if pos_diff > 0 then
     pos_diff = pos_diff - VRR * dt
-    self.ring_pos[skr] = self.ring_pos[skr] + VRR * dt
+    self.ring_pos = self.ring_pos + VRR * dt
     if pos_diff <= 0 then
-      self.ring_pos[skr] = self.target_ring_pos
+      self.ring_pos = self.target_ring_pos
     end
   elseif pos_diff < 0 then
     pos_diff = pos_diff + VRR * dt
-    self.ring_pos[skr] = self.ring_pos[skr] - VRR * dt
+    self.ring_pos = self.ring_pos - VRR * dt
     if pos_diff >= 0 then
-      self.ring_pos[skr] = self.target_ring_pos
+      self.ring_pos = self.target_ring_pos
     end
   end
 

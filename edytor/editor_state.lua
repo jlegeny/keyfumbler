@@ -1,3 +1,5 @@
+local util = require 'util'
+
 State = {
   IDLE = 0,
   CONFIRM = 1,
@@ -67,12 +69,24 @@ function EditorState.new()
   self.selection = {}
   self.highlight = {}
 
+  self.saved_selections = {}
+
   -- intermittent state
   self.current_rline = nil
   self.selection_line_r = nil
   self.text_input = ""
 
   return self
+end
+
+function EditorState:save_selection(mapindex)
+  self.saved_selections[mapindex] = util.deepcopy(self.selection)
+end
+
+function EditorState:restore_selection(mapindex)
+  if self.saved_selections[mapindex] then
+    self.selection = util.deepcopy(self.saved_selections[mapindex])
+  end
 end
 
 function EditorState:undo(map)

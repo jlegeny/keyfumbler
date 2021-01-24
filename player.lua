@@ -1,4 +1,4 @@
-local map = require 'map'
+local Map = require 'map'
 local raycaster = require 'raycaster'
 local Line = require 'line'
 
@@ -61,9 +61,15 @@ function Player:step_forward(dt, map)
   dx = dt * math.sin(self.rot) * self.speed
   dy = dt * math.cos(self.rot) * self.speed
 
-
+  local obstructed = false
   local bounces = 0
-  local collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w ^ 2)
+  local collision = nil
+
+  if self.noclip then
+    goto make_step
+  end
+
+  collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w ^ 2)
   while collision ~= nil and bounces < 2 do
     local nx, ny = Line.norm_vector(collision.line)
     local dot = self.rx * nx + self.ry * ny
@@ -78,11 +84,9 @@ function Player:step_forward(dt, map)
     bounces = bounces + 1
   end
 
-  local obstructed = false
-  if collision ~= nil then
-    obstructed = not self.noclip 
-  end
+  obstructed = collision ~= nil
  
+  ::make_step::
   if not obstructed then
     self.rx = self.rx + dx
     self.ry = self.ry + dy

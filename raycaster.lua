@@ -118,7 +118,7 @@ RayCaster.is_cut_by_wall = function(map, line)
     return false
   end
 
-  return Line.fast_dot(map.walls[lc.id].line, line.bx, line.by) < -0.001
+  return Line.fast_dot(map.walls[lc.id].line, line.bx, line.by) < -INTERSECT_TOLERANCE
 end
 
 RayCaster.is_cut_by_any_line = function(map, line)

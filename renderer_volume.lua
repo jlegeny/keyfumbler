@@ -59,6 +59,8 @@ function VolumeRenderer:setup(x, y, width, height, textures)
   self.height = height
   self.textures = textures
 
+  self.flat_light = false
+
   self.fpv = love.graphics.newCanvas(self.width, self.height)
   self.fpv:setFilter("nearest", "nearest")
 
@@ -89,124 +91,6 @@ function VolumeRenderer:toggle_mode()
   elseif self.mode == 'surface' then
     self.mode = 'photo'
   end
-end
-
-function VolumeRenderer:draw_primitive(map, player)
-  love.graphics.setCanvas(self.fpv)
-
-  engyne.reset_color()
-  love.graphics.clear()
-  love.graphics.setBlendMode('alpha')
-
-
-  local eye_rx = player.rx + math.sin(player.rot)
-  local eye_ry = player.ry + math.cos(player.rot)
-  local eye = Line(player.rx, player.ry, eye_rx, eye_ry)
-  local eye_ux, eye_uy = eye:unit_vector()
-  local eye_rnx, eye_rny = eye:norm_vector()
-  
-  local ll = 0
-
-  love.graphics.setLineWidth(0)
-
-  local eye_x, eye_y = math.sin(player.rot), math.cos(player.rot)
-  local eye_px, eye_py = player.rx + player.chin * eye_x, player.ry + player.chin * eye_y
-
-  -- highlight colliding walls
-  local res_v = self.width
-
-  local minx, miny = math.sin(player.rot + player.fov / 2), math.cos(player.rot + player.fov / 2)
-  local maxx, maxy = math.sin(player.rot - player.fov / 2), math.cos(player.rot - player.fov / 2)
-  local dx, dy = (maxx - minx) / res_v, (maxy - miny) / res_v
-
-  for theta = 0, res_v - 1  do
-    local linex = theta + 0.5
-    local liney = 0.5
-    local ray = Line(player.rx, player.ry, player.rx + minx + dx * theta, player.ry + miny + dy * theta)
-    local collisions = raycaster.fast_collisions(map, ray)
-    local top
-    local bottom
-    local prev_floor_height = nil
-    local prev_ceiling_height = nil
-    for i = #collisions, 1, - 1 do
-      local cc = collisions[i]
-      local dist = (cc.x - eye_px) * eye_x + (cc.y - eye_py) * eye_y
-      local scale = 1 / dist
-      local illumination = 0.0
-      local light = math.min(illumination + 1 / (math.sqrt(dist / 2)), 1)
-
-      local wall_color = math.floor(light * 31)
-      wall_color = math.min(math.max(wall_color, 0), 31)
-
-      local floor_color = math.floor(light * 7)
-      floor_color = math.min(math.max(floor_color, 0), 7)
-
-      if cc.is_split then
-        if cc.floor_height and prev_floor_height then
-          local rheight = scale * (cc.floor_height - prev_floor_height)
-          local rtop = scale * (player.h + player.z - prev_floor_height)
-          local rbottom = rtop - rheight
-
-          local top = self.height * (rtop + 1) / 2
-          local bottom = self.height * (rbottom + 1) / 2
-          if  cc.floor_height < prev_floor_height then
-            engyne.reset_color()
-            engyne.set_color('grey', wall_color)
-            love.graphics.line(linex, top, linex, bottom)
-          else
-            local overhang_height = (cc.floor_height - prev_floor_height) * scale * self.height
-            engyne.reset_color()
-            engyne.set_color('brass', floor_color)
-            love.graphics.line(linex, bottom, linex, bottom + overhang_height)
-            love.graphics.setBlendMode('alpha')
-          end
-
-        end
-
-        if cc.ceiling_height and prev_ceiling_height then
-          local rheight = scale * (prev_ceiling_height - cc.ceiling_height)
-          local rbottom = scale * (player.h + player.z - cc.ceiling_height)
-          local rtop = rbottom - rheight
-
-          local top = self.height * (rtop + 1) / 2
-          local bottom = self.height * (rbottom + 1) / 2
-
-          if cc.ceiling_height > prev_ceiling_height then
-             engyne.set_color('grey', wall_color)
-             love.graphics.line(linex, top, linex, bottom)
-          end
-        end
-
-        prev_floor_height = cc.floor_height
-        prev_ceiling_height = cc.ceiling_height
-      elseif cc.ceiling_height and cc.floor_height then
-        local rheight = scale * (cc.ceiling_height - cc.floor_height)
-
-        engyne.set_color('grey', wall_color)
-        
-        local rbottom = scale * (player.h + player.z - cc.floor_height)
-        local rtop = rbottom - rheight
-
-        local top = self.height * (rtop + 1) / 2
-        local bottom = self.height * (rbottom + 1) / 2
-        love.graphics.line(linex, liney + top, linex, liney + bottom)
-
-        engyne.set_color('brass', floor_color)
-        love.graphics.line(linex, liney + bottom, linex, liney + self.y + self.height)
-
-        prev_floor_height = cc.floor_height
-        prev_ceiling_height = cc.ceiling_height
-      end
-      engyne.reset_color()
-    end
-  end
-
-  -- set canvas back to original
-  love.graphics.setCanvas()
-  engyne.reset_color()
-  love.graphics.setBlendMode('alpha', 'premultiplied')
-  love.graphics.draw(self.fpv, self.x, self.y)
-  love.graphics.setBlendMode('alpha')
 end
 
 local ns = 0
@@ -250,11 +134,14 @@ end
 function VolumeRenderer:photo_segment_renderer(ox, oy, s)
   if s.kind == 'wall' or s.kind == 'split' or s.kind == 'door' then
     local illumination = ((s.ambient_light + s.dynamic_light) / 64)
+    if self.flat_light then
+      illumination = 0.5
+    end
     local light = math.min(illumination * 1 / (math.sqrt(s.dist / 2)), 1)
     --local light = math.min(illumination, 1)
 
     local wall_color = math.floor(light * 62)
-    wall_color = math.min(math.max(wall_color, 0), 62)
+    wall_color = math.min(math.max(wall_color, 0), 54)
     if s.kind == 'door' then
       engyne.set_color('brass', math.floor(wall_color / 8))
     else
@@ -292,11 +179,15 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
     end
   else
     local far_illumination = ((s.ambient_light + s.dynamic_light) / 64)
+    local close_illumination = ((s.ambient_light + s.prev_dynamic_light) / 64)
+    if self.flat_light then
+      far_illumination = 0.5
+      close_illumination = 0.5
+    end
     local far_light = math.min(far_illumination * 1 / (math.sqrt(s.dist / 2)), 1)
     --local far_light = math.min(far_illumination, 1)
     local far_color = math.floor(far_light * 31)
     far_color = math.min(math.max(far_color, 0), 31)
-    local close_illumination = ((s.ambient_light + s.prev_dynamic_light) / 64)
     local close_light = math.min(close_illumination * 1 / (math.sqrt(s.prev_dist / 2)), 1)
     --local close_light = math.min(close_illumination, 1)
     local close_color = math.floor(close_light * 31)

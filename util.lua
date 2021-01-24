@@ -31,4 +31,11 @@ util.gamedir = function()
   return love.filesystem.getSource()
 end
 
+util.str = function(maybe_str)
+  if maybe_str == nil then
+    return '(nil)'
+  end
+  return maybe_str
+end
+
 return util

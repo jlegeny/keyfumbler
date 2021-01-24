@@ -321,22 +321,13 @@ function Map.print_bsp(node, depth)
   for i = 1, depth do
     str = str .. '  '
   end
-  local parent_id
   if node.parent == nil then
     parent_id = 'nil'
   else
     parent_id = node.parent.id
   end
   if node.is_leaf then
-    local room_str = 'nil'
-    if node.room_id ~= nil then
-      room_str = node.room_id
-    end
-    local up_str = 'nil'
-    if node.up ~= nil then
-      up_str = node.up
-    end
-    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. room_str .. ' up ' .. up_str
+    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. util.str(node.room_id) .. ' up ' .. util.str(node.up)
     print(str)
   else
     if node.is_split then
@@ -415,7 +406,7 @@ function Map:annotate_connex_rooms()
           local line = Line(poly[i][1], poly[i][2], poly[j][1], poly[j][2])
           local nx, ny = line:norm_vector()
           local midx, midy = line:mid()
-          local PROBE_SIZE = 0.1
+          local PROBE_SIZE = 1/32
           local probe = Line(midx + PROBE_SIZE * nx, midy + PROBE_SIZE * ny, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
           local other = raycaster.get_region_node(self.volatile.bsp, midx - PROBE_SIZE * nx, midy - PROBE_SIZE * ny)
           if id ~= other.id and not raycaster.is_cut_by_any_line(self, probe) then
