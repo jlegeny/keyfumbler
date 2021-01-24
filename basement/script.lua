@@ -1,3 +1,5 @@
+local util = require 'util'
+
 function trigger(id, trigger, game)
   local alias = game.map.aliases[id]
 
@@ -28,13 +30,23 @@ function trigger(id, trigger, game)
   end
 end
 
-function entered(room_id, from_id, game)
+function entered(map_id, room_id, from_id, game)
   local alias = game.map.aliases[room_id]
-  local alias_str = ''
-  if alias then
-    alias_str = alias
+  print('layer ' .. map_id .. ' entered room ' .. util.str(room_id) .. ' [' .. util.str(alias) .. '] from ' .. util.str(from_id))
+
+  -- level 01-02 teleport
+  if map_id == 1 then
+    if room_id == 530 and from_id == 529 then
+      game:set_layer(2)
+    end
   end
-  print('entered room ' .. room_id .. ' [' .. alias_str .. '] from ' .. from_id)
+
+  if map_id == 2 then
+    if room_id == 529 and from_id == 530 then
+      game:set_layer(1)
+    end
+  end
+
 end
 
 local script = {
