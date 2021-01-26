@@ -278,12 +278,15 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
 
   local prev_top = 1
   local prev_bottom = -1
+  local prev_ceiling_bottom = 1
+  local prev_floor_top = -1
   local prev_floor_height = collisions[1].floor_height
   local prev_ceiling_height = collisions[1].ceiling_height
   local prev_scale = 1000
   local prev_dist = 0.001
   local prev_dynamic_light = collisions[1].dynamic_light
   local prev_ambient_light = collisions[1].ambient_light
+  local prev_decals = nil
 
   if prev_floor_height == nil then
     prev_floor_height = -10
@@ -314,8 +317,11 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           top = top,
           bottom = bottom,
           height = height,
+          decals = prev_decals,
           ambient_light = prev_ambient_light,
           dynamic_light = prev_dynamic_light,
+          ceiling_bottom = prev_ceiling_bottom,
+          floor_top = prev_floor_top,
         })
         prev_top = top
       end
@@ -413,6 +419,9 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       prev_ceiling_height = cc.ceiling_height
       prev_ambient_light = cc.ambient_light
       prev_dynamic_light = cc.dynamic_light
+      prev_ceiling_bottom = ceiling_bottom
+      prev_floor_top = floor_top
+      prev_decals = cc.decals
       prev_scale = scale
       prev_dist = dist
    end

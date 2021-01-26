@@ -2,6 +2,7 @@ local engyne = require 'engyne'
 local Game = require 'game'
 local Key = require 'object/key'
 local Level = require 'level'
+local textures = require 'textures'
 
 local VolumeRenderer = require 'renderer_volume'
 local VolumeOverlayRenderer = require 'renderer_volume_overlay'
@@ -10,9 +11,6 @@ local VolumeOverlayRenderer = require 'renderer_volume_overlay'
 
 volume_renderer = VolumeRenderer()
 volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
-
-image_names = {'missing', 'painting-01'}
-image_data = {}
 
 level = Level('basement', {
   [0] = 'scratch',
@@ -28,15 +26,17 @@ delegate.notify = function(event)
     map:update_bsp()
   elseif event == 'map_updated' then
     volume_renderer:invalidate_light_cache()
-  end
+  elseif event == 'layer_changed' then
+    volume_renderer:invalidate_light_cache()
+   end
 end
 
 delegate.image_name = function(index)
-  return image_names[index]
+  return textures.image_names[index]
 end
 
 delegate.image_data = function()
-  return image_data
+  return textures.image_data
 end
 
 
@@ -59,6 +59,7 @@ setmetatable(GameMain, {
 
 function GameMain.load()
   game = Game:new()
+  game.delegate = delegate
 
   -- window
   love.window.setTitle("Keyfumbler")
@@ -69,19 +70,10 @@ function GameMain.load()
     minwidth = WINDOW_WIDTH, 
     minheight = WINDOW_HEIGHT})
 
-  for i, name in ipairs(image_names) do
-    local texture = love.image.newImageData('assets/${name}.png' % { name = name })
-    image_data[name] = {
-      index = i,
-      texture = texture,
-      height = texture:getHeight(),
-      width = texture:getWidth(),
-    }
-  end
-
+  textures.load()
   -- fonts
   engyne.set_default_font()
-  game:set_level(level, 0)
+  game:set_level(level, 1)
   game:set_player_position(51.5, 54.5, math.pi / 2)
 
   local kid = 10000
@@ -93,7 +85,7 @@ function GameMain.load()
   end
   game:update_inventory()
 
-  volume_renderer:setup(0, 0 , 320, 240, image_data)
+  volume_renderer:setup(0, 0 , 320, 240, textures.image_data)
 end
 
 function GameMain.resize(w, h)

@@ -60,7 +60,18 @@ end
 function Player:step_forward(dt, map)
   dx = dt * math.sin(self.rot) * self.speed
   dy = dt * math.cos(self.rot) * self.speed
+  
+  self:step(dx, dy, dt, map)
+end
 
+function Player:step_backward(dt, map)
+  dx = -dt * math.sin(self.rot) * self.speed
+  dy = -dt * math.cos(self.rot) * self.speed
+
+  self:step(dx, dy, dt, map)
+end
+
+function Player:step(dx, dy, dt, map)
   local obstructed = false
   local bounces = 0
   local collision = nil
@@ -70,18 +81,17 @@ function Player:step_forward(dt, map)
   end
 
   collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w ^ 2)
-  while collision ~= nil and bounces < 2 do
+  if collision ~= nil then
     local nx, ny = Line.norm_vector(collision.line)
     local dot = self.rx * nx + self.ry * ny
+    dx, dy = Line.unit_vector(collision.line)
     if dot < 0 then
-      dx = dx + nx * dx
-      dy = dy + ny * dy
+      dx, dy = -self.speed * dx * dt, -self.speed * dy * dt
     else
-      dx = dx - nx * dx
-      dy = dy - ny * dy
+      dx, dy = self.speed * dx * dt, self.speed * dy * dt
     end
+
     collision = raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w ^ 2)
-    bounces = bounces + 1
   end
 
   obstructed = collision ~= nil
@@ -92,18 +102,7 @@ function Player:step_forward(dt, map)
     self.ry = self.ry + dy
     self:update(map)
   end
-end
 
-function Player:step_backward(dt, map)
-  dx = -dt * math.sin(self.rot) * self.speed
-  dy = -dt * math.cos(self.rot) * self.speed
-
-  local obstructed = not self.noclip and raycaster.circular_collision(map.volatile.bsp, self.rx + dx, self.ry + dy, self.w ^ 2)
-  if not obstructed then
-    self.rx = self.rx + dx
-    self.ry = self.ry + dy
-    self:update(map)
-  end
 end
 
 

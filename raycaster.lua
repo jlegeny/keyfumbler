@@ -37,7 +37,7 @@ RayCaster.fast_collisions = function(map, vector)
 
         -- when useful detect position of the ray with respect to the wall
         local posx
-        if (node.is_split and node.is_door) or #obj.decals > 0 then
+        if (node.is_split and obj.is_door) or #obj.decals > 0 then
           local spanx = node.line.bx - node.line.ax
           local spany = node.line.by - node.line.ay
           if spanx > spany then

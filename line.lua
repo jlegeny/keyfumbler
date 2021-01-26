@@ -32,6 +32,9 @@ end
 function Line:unit_vector()
   local x, y = Line.vector(self)
   d = math.sqrt(x * x + y * y)
+  if d == 0 then
+    return 0, 0
+  end
   return x / d, y / d
 end
 

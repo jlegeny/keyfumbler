@@ -137,6 +137,13 @@ function ItemRenderer:draw(map, editor_state)
     if self.selected == self._stat_n then
       if self._stat_mod ~= 0 then
         self.obj.is_door = not self.obj.is_door
+        if self.obj.is_door then
+          self.obj.open_per = 1
+          self.obj.open = false
+        else
+          self.obj.open_per = nil
+          self.obj.open = nil
+        end
       end
     end
     self:print_stat('is_door', self.obj.is_door, 'bool')
@@ -161,7 +168,7 @@ function ItemRenderer:draw(map, editor_state)
     for i, decal in ipairs(self.obj.decals) do
       if self.selected == self._stat_n then
         local ni = self.delegate.image_data()[decal.name].index
-        ni = (((ni - 1) + self._stat_mod) % 2) + 1
+        ni = (((ni - 1) + self._stat_mod) % self.delegate.image_count()) + 1
         decal.name = self.delegate.image_name(ni)
       end
       self:print_stat('[${i}]:' % {i = i}, decal.name, 'name')

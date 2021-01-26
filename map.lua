@@ -368,11 +368,13 @@ end
 function Map:slice_and_dice()
   for id, node in pairs(self.volatile.leaves) do
     node.slices = { node.poly }
-    for _, wall in pairs(self.walls) do
-      node.slices = chop_chop(node.slices, wall.line)
+    for id, wall in pairs(self.walls) do
+      print('chopw', id)
+      --node.slices = chop_chop(node.slices, wall.line)
     end
-    for _, split in pairs(self.splits) do
-      node.slices = chop_chop(node.slices, split.line)
+    for id, split in pairs(self.splits) do
+      print('chops', id)
+      --node.slices = chop_chop(node.slices, split.line)
     end
   end
 end
@@ -418,7 +420,21 @@ function Map:annotate_connex_rooms()
   end
 end
 
+function debug(...)
+  print(...)
+end
+
 function Map:update_bsp()
+
+  local x0, y0, xn, yn = 0, 0, 100, 100
+  function update_bounds(line)
+    x0 = math.min(x0, line.ax, line.bx)
+    y0 = math.min(y0, line.ay, line.by)
+    xn = math.max(xn, line.ax, line.bx)
+    yn = math.max(yn, line.ay, line.by)
+  end
+
+  debug('making bsp...')
   local bsp_id = 0
 
   function next_id()
@@ -434,14 +450,17 @@ function Map:update_bsp()
   }
   self.volatile.leaves = {}
 
+
   local sorted_ids = {}
   for k, _ in pairs(self.walls) do
     table.insert(sorted_ids, k)
   end
   table.sort(sorted_ids)
 
+  debug(' ... adding walls')
   for i, ogid in ipairs(sorted_ids) do
     local wall = self.walls[ogid]
+    update_bounds(wall.line)
     self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, wall.line, next_id, wall)
   end
 
@@ -451,8 +470,10 @@ function Map:update_bsp()
   end
   table.sort(sorted_ids)
 
+  debug(' ... adding splits')
   for i, ogid in ipairs(sorted_ids) do
     local split = self.splits[ogid]
+    update_bounds(split.line)
     self.volatile.bsp = self:place_line_in_bsp(self.volatile.bsp, ogid, split.line, next_id, split)
   end
 
@@ -462,11 +483,16 @@ function Map:update_bsp()
   end
   table.sort(sorted_ids)
 
+  debug(' ... updating polygons')
   update_polys(self.volatile.bsp, {{0, 0}, {100, 0}, {100, 100}, {0, 100}})
+
+  debug(' ... slicing polygons')
   self:slice_and_dice()
 
+  debug(' ... annotating connex rooms')
   self:annotate_connex_rooms()
 
+  debug(' ... placing rooms')
   for i, ogid in ipairs(sorted_ids) do
     local room = self.rooms[ogid]
     self:place_room_in_bsp(self.volatile.bsp, ogid, room)

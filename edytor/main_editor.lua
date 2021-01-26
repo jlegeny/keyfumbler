@@ -3,6 +3,7 @@ local engyne = require 'engyne'
 local raycaster = require 'raycaster'
 
 local lines = require 'lines'
+local textures = require 'textures'
 
 local Game = require 'game'
 local Line = require 'line'
@@ -43,8 +44,6 @@ Operation = {
 
 e = EditorState()
 
-image_names = {'missing', 'painting-01'}
-image_data = {}
 level = Level('basement', {
   [0] = 'scratch',
   [1] = 'map01',
@@ -87,11 +86,15 @@ delegate.notify = function(event)
 end
 
 delegate.image_name = function(index)
-  return image_names[index]
+  return textures.image_names[index]
 end
 
 delegate.image_data = function()
-  return image_data
+  return textures.image_data
+end
+
+delegate.image_count = function()
+  return textures.count
 end
 
 -- FUNCTIONS
@@ -132,7 +135,7 @@ function setup(w, h)
   local level_h = h - bb_h - 3 * pad
 
   level_renderer:setup(pad, pad, level_w, level_h)
-  volume_renderer:setup(sb_x, pad , volume_w, volume_h, image_data)
+  volume_renderer:setup(sb_x, pad , volume_w, volume_h, textures.image_data)
 
   tabs_renderer:setup(sb_x, tabs_y, sb_w, tabs_h)
 
@@ -186,21 +189,13 @@ function EditorMain.load()
   love.window.setTitle("Engyne Edytor")
   love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {fullscreen = false, vsync = true, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
 
-  for i, name in ipairs(image_names) do
-    local texture = love.image.newImageData('assets/${name}.png' % { name = name })
-    image_data[name] = {
-      index = i,
-      texture = texture,
-      height = texture:getHeight(),
-      width = texture:getWidth(),
-    }
-  end
+  textures.load()
 
   -- fonts
   engyne.set_default_font()
 
   setmap()
-  game:set_player_position(51.5, 54.5, math.pi / 2)
+  game:set_player_position(51.5, 54.5, -math.pi / 2)
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
@@ -257,6 +252,8 @@ function EditorMain.keypressed(key, unicode)
         end
         e.state = State.TI_NAMING_ALIAS
       end
+    elseif key == 'f6' then
+      level:save(mapindex)
     elseif key == 'backspace' then
       undoable('delete', function ()
         map:remove_objects_set(e.selection)
@@ -386,7 +383,15 @@ function EditorMain.mousepressed(mx, my, button, istouch)
             local id = map:get_id()
             local obj = nil
             if e.draw == Draw.ROOM then
-              obj = Room(rx, ry, 0, 2, 32)
+              local lr = nil
+              if e.last_selected_room then
+                lr = map.rooms[e.last_selected_room]
+              end
+              if lr then
+                obj = Room(rx, ry, lr.floor_height, lr.ceiling_height, lr.ambient_light)
+              else
+                obj = Room(rx, ry, 0, 2, 32)
+              end
             elseif e.draw == Draw.LIGHT then
               obj = Light(rx, ry, 4)
             elseif e.draw == Draw.THING then
@@ -493,6 +498,9 @@ function EditorMain.draw()
         local id, kind = next(e.selection)
         item_renderer:set_item(map, id, kind)
         e.sidebar = Sidebar.ITEM
+        if kind == 'room' then
+          e.last_selected_room = id
+        end
       elseif e:selection_count() > 1 then
         e.sidebar = Sidebar.SELECTION
       end

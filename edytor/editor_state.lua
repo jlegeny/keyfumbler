@@ -75,6 +75,7 @@ function EditorState.new()
   self.current_rline = nil
   self.selection_line_r = nil
   self.text_input = ""
+  self.last_selected_room = nil
 
   return self
 end
