@@ -369,11 +369,9 @@ function Map:slice_and_dice()
   for id, node in pairs(self.volatile.leaves) do
     node.slices = { node.poly }
     for id, wall in pairs(self.walls) do
-      print('chopw', id)
       --node.slices = chop_chop(node.slices, wall.line)
     end
     for id, split in pairs(self.splits) do
-      print('chops', id)
       --node.slices = chop_chop(node.slices, split.line)
     end
   end

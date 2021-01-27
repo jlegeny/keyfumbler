@@ -137,7 +137,7 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
     if self.flat_light then
       illumination = 0.5
     end
-    local light = math.min(illumination * 1 / (math.sqrt(s.dist / 2)), 1)
+    local light = math.min(illumination * 1 / (math.sqrt(s.dist / 2) + 0.5), 1)
     --local light = math.min(illumination, 1)
 
     local wall_color = math.floor(light * 62)
@@ -154,8 +154,15 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
     if s.decals then
       love.graphics.setBlendMode('replace', 'premultiplied')
       for _, decal in ipairs(s.decals) do
-        local rtop = self.height * (s.ceiling_bottom + 1) / 2
-        local rbottom = self.height * (s.floor_top + 1) / 2
+        local rtop
+        local rbottom
+        if s.kind == 'split' then
+          rtop = top
+          rbottom = self.height * (s.floor_top + 1) / 2
+        else
+          rtop = self.height * (s.ceiling_bottom + 1) / 2
+          rbottom = self.height * (s.floor_top + 1) / 2
+        end
         local h = rbottom - rtop
         local dtop = math.floor(rtop + h * decal.y)
         local dbottom = math.floor(rtop + h * (decal.y + decal.height))
@@ -185,11 +192,9 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
       close_illumination = 0.5
     end
     local far_light = math.min(far_illumination * 1 / (math.sqrt(s.dist / 2)), 1)
-    --local far_light = math.min(far_illumination, 1)
     local far_color = math.floor(far_light * 31)
     far_color = math.min(math.max(far_color, 0), 31)
     local close_light = math.min(close_illumination * 1 / (math.sqrt(s.prev_dist / 2)), 1)
-    --local close_light = math.min(close_illumination, 1)
     local close_color = math.floor(close_light * 31)
     close_color = math.min(math.max(close_color, 0), 31)
 
@@ -260,7 +265,9 @@ function VolumeRenderer:draw_segments(map, player, segment_renderer)
       
     local segments = VolumeRenderer.segments(eye_x, eye_y, eye_dx, eye_dy, player, collisions)
     self:print_segments(segments)
-    for _, s in pairs(segments) do
+    -- for _, s in pairs(segments) do
+    for i = #segments, 1, -1 do
+      local s = segments[i]
       segment_renderer(self, linex, liney, s)
     end
   end
@@ -271,6 +278,8 @@ end
 
 VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisions)
   local segments = {}
+
+  local eye_h = player:eye_height()
 
   if #collisions == 0 then
     return segments
@@ -307,7 +316,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       if prev_floor_height < cc.floor_height then
         local height = prev_scale * (cc.floor_height - prev_floor_height)
         local bottom = prev_top
-        local top = prev_scale * (player.h + player.z - cc.floor_height)
+        local top = prev_scale * (eye_h + player.z - cc.floor_height)
 
         table.insert(segments, {
           kind = 'split',
@@ -329,7 +338,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       if prev_ceiling_height > cc.ceiling_height then
         local height = prev_scale * (cc.ceiling_height - prev_ceiling_height)
         local top = prev_bottom
-        local bottom = prev_scale * (player.h + player.z - cc.ceiling_height)
+        local bottom = prev_scale * (eye_h + player.z - cc.ceiling_height)
 
         table.insert(segments, {
           kind = 'split',
@@ -346,7 +355,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
       end
 
 
-      local floor_top = scale * (player.h + player.z - cc.floor_height)
+      local floor_top = scale * (eye_h + player.z - cc.floor_height)
       if floor_top <= prev_top then
         table.insert(segments, {
           kind = 'floor',
@@ -363,7 +372,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
         prev_top = floor_top
       end
 
-      local ceiling_bottom = scale * (player.h + player.z - cc.ceiling_height)
+      local ceiling_bottom = scale * (eye_h + player.z - cc.ceiling_height)
       if ceiling_bottom >= prev_bottom then
         table.insert(segments, {
           kind = 'ceiling',

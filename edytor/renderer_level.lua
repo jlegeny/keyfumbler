@@ -317,6 +317,11 @@ function LevelRenderer:draw_node(node, editor_state)
   else
     engyne.set_color('lightgrey', 7)
   end
+  if glob.first_collision == node.id then
+    engyne.set_color('green')
+  elseif glob.second_collision == node.id then
+    engyne.set_color('red')
+  end
   love.graphics.line(cline.ax, cline.ay, cline.bx, cline.by)
 
   local mid_cx, mid_cy = cline:mid()

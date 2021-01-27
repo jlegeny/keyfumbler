@@ -34,6 +34,7 @@ Probe = {
   REGION_ANCESTORS = 1,
   VISIBILITY = 2,
   CONNECTIVITY = 3,
+  COLLISIONS = 4,
 }
 
 Sidebar = {

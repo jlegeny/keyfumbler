@@ -38,12 +38,12 @@ RayCaster.fast_collisions = function(map, vector)
         -- when useful detect position of the ray with respect to the wall
         local posx
         if (node.is_split and obj.is_door) or #obj.decals > 0 then
-          local spanx = node.line.bx - node.line.ax
-          local spany = node.line.by - node.line.ay
+          local spanx = obj.line.bx - obj.line.ax
+          local spany = obj.line.by - obj.line.ay
           if spanx > spany then
-            posx = (int_x - node.line.ax) / spanx
+            posx = (int_x - obj.line.ax) / spanx
           else
-            posx = (int_y - node.line.ay) / spany
+            posx = (int_y - obj.line.ay) / spany
           end
         end
 
@@ -370,31 +370,51 @@ function sq_dist_pt_line(line, x, y)
   return apx * apx + apy * apy - e * e / f
 end
 
-RayCaster.circular_collision = function(node, x, y, r2)
+RayCaster.circular_collision_node = function(map, node, ox, oy, dx, dy, r2)
+  local x, y = ox + dx, oy + dy
   if node.is_leaf then
     return nil
   end
 
-  --local norm_x, norm_y = Line.norm_vector(node.line)
+ --local norm_x, norm_y = Line.norm_vector(node.line)
   local dot = Line.point_dot(node.line, x, y)
+  local odot = Line.point_dot(node.line, ox, oy)
   
+  if dot > 0 and dot > odot then
+    return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
+  end
+  if dot < 0 and dot > odot then
+    return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
+  end
+
   if node.is_split then
-    if dot > 0 then
-      return RayCaster.circular_collision(node.front, x, y, r2)
-    else
-      return RayCaster.circular_collision(node.back, x, y, r2)
+    if map.splits[node.ogid].is_door then
+      if not map.splits[node.ogid].is_open then
+        goto collide
+      end
     end
-  else
-    local d = sq_dist_pt_line(node.line, x, y)
-    if d <= r2 then
-      return node
-    end
+
     if dot > 0 then
-      return RayCaster.circular_collision(node.front, x, y, r2)
+      return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
     else
-      return RayCaster.circular_collision(node.back, x, y, r2)
+      return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
     end
   end
+
+  ::collide::
+  local d = sq_dist_pt_line(node.line, x, y)
+  if d < r2 then
+    return node
+  end
+  if dot > 0 then
+    return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
+  else
+    return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
+  end
+end
+
+RayCaster.circular_collision = function(map, ox, oy, dx, dy, r2)
+  return RayCaster.circular_collision_node(map, map.volatile.bsp, ox, oy, dx, dy, r2)
 end
 
 RayCaster.get_front_leave_ids = function(node, visited)

@@ -110,6 +110,16 @@ function Game:keypressed(key, unicode)
     end
   end
 
+  if key == 'c' then
+    if self.player.posture == Player.Posture.STAND or 
+      self.player.posture == Player.Posture.STANDING then
+      self.player.posture = Player.Posture.CROUCHING
+    elseif self.player.posture == Player.Posture.CROUCH or
+      self.player.posture == Player.Posture.CROUCHING then
+      self.player.posture = Player.Posture.STANDING
+    end
+  end
+
   if key == 'f' then
     local kr = self.keyring
     if kr.state == 'closed' or kr.state == 'closing' then
@@ -158,21 +168,32 @@ function Game:update(dt)
     prev_room_id = self.player.region.room_id
   end
  
-  -- player controls
-  if love.keyboard.isDown('a') then
-    self.player:rotate_ccw(dt)
-  elseif love.keyboard.isDown('d') then
-    self.player:rotate_cw(dt)
+  if self.player.posture == Player.Posture.STAND or self.player.posture == Player.Posture.CROUCH then
+    -- player controls
+    if love.keyboard.isDown('a') then
+      self.player:rotate_ccw(dt)
+    elseif love.keyboard.isDown('d') then
+      self.player:rotate_cw(dt)
+    end
+
+    local player_speed = 'walk'
+    if self.player.posture == Player.Posture.STAND then
+      if love.keyboard.isDown('lshift') then
+        player_speed = 'sprint'
+      end
+    end
+
+    if love.keyboard.isDown('w') then
+      self.player:step_forward(dt, player_speed, self.map)
+    elseif love.keyboard.isDown('s') then
+      self.player:step_backward(dt, player_speed, self.map)
+    end
   end
 
-  if love.keyboard.isDown('w') then
-    self.player:step_forward(dt, self.map)
-  elseif love.keyboard.isDown('s') then
-    self.player:step_backward(dt, self.map)
-  end
+  self.player:update_posture(dt)
 
   -- after movement
- local new_room_id = 0
+  local new_room_id = 0
   if self.player.region then
     new_room_id = self.player.region.room_id
   end

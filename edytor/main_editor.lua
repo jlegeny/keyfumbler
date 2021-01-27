@@ -42,6 +42,7 @@ Operation = {
   ADD_SPLIT = 3,
 }
 
+glob = {}
 e = EditorState()
 
 level = Level('basement', {
@@ -195,7 +196,7 @@ function EditorMain.load()
   engyne.set_default_font()
 
   setmap()
-  game:set_player_position(51.5, 54.5, -math.pi / 2)
+  game:set_player_position(54.25, 48.25, 2 * -math.pi / 2)
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
