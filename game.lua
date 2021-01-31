@@ -15,6 +15,13 @@ setmetatable(Game, {
 function Game.new()
   local self = {}
   setmetatable(self, Game)
+  self.audio = {
+    ambience = love.audio.newSource("assets/ambience.ogg", "static")
+  }
+  self.audio.ambience:setVolume(0.25)
+  self.audio.ambience:setLooping(true)
+  -- self.audio.ambience:play()
+
   self.player = Player()
   self.level = nil
   self.layer = nil
@@ -27,6 +34,7 @@ function Game.new()
     position = 0,
     selected_key = 0,
   }
+
 
   self.volatile = {
     key_count = 0,
