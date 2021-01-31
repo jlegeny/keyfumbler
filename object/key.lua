@@ -310,10 +310,12 @@ function Key:draw_front(x, y, angle, scale)
 end
 
 
-function Key.random()
+function Key.random(material)
 
   local key_type = Key.Type.PIN_TUMBLER
-  local material = math.random(Key.Material.BRASS, Key.Material.STEEL)
+  if not material then
+    material = math.random(Key.Material.BRASS, Key.Material.STEEL)
+  end
   local body = Key.Body.FAB
 
   local pinning = {}
