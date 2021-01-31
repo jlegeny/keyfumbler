@@ -51,6 +51,14 @@ function Player:speed(gait)
   end
 end
 
+function Player:has(map, alias)
+  local id = map.volatile.raliases[alias]
+  if not id then
+    return nil
+  end
+  return self.inventory[id]
+end
+
 function Player:height()
   return 1.1 - self.crouch
 end

@@ -4,7 +4,7 @@ local Key = require 'object/key'
 
 local data = {
   items = {
-    cellar_key = Key.random(Key.Material.BRASS),
+    entrance_key = Key.random(Key.Material.BRASS),
   }
 }
 
@@ -13,8 +13,14 @@ end
 
 function near(id, game)
   local alias = game.map.aliases[id]
-  if alias == 'cellar-key-t' then
+  if alias == '_entrance.key' then
     game.overlay_text = 'Press E to pick up the key.'
+  elseif alias == '_entrance.door' then
+    if game.player:has(game.map, 'entrance.key') then
+      game.overlay_text = 'Press F to whip out the key.'
+    else
+      game.overlay_text = 'The door is locked and you have no keys.'
+    end
   end
 end
 
@@ -22,9 +28,9 @@ function trigger(id, trigger, game)
   local alias = game.map.aliases[id]
 
   print('triggered', id, alias)
-  if alias == 'cellar-key-t' then
-    id, _ = game.map:pick_up('cellar-key')
-    game.player.inventory[id] = data.items.cellar_key
+  if alias == '_entrance.key' then
+    id, _ = game.map:pick_up('entrance.key')
+    game.player.inventory[id] = data.items.entrance_key
   end
   if id == 621 then
     local door = game.map.splits[608]
