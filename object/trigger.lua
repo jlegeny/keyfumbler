@@ -14,7 +14,6 @@ function Trigger.new(x, y, r, name)
   self.x = x
   self.y = y
   self.r = r
-  self.name = name
   return self
 end
 

@@ -22,6 +22,7 @@ function Level.new(name, maps, delegate)
   self.layer_count = 0
   self.delegate = delegate
 
+  self.near = nil
   self.trigger = nil
   self.entered = nil
 
@@ -50,7 +51,7 @@ function Level:restore()
   end
   local chunk = love.filesystem.load(scriptfile)
   local script = chunk()
-  self.trigger, self.entered = script.trigger, script.entered
+  self.near, self.trigger, self.entered = script.near, script.trigger, script.entered
   
   for index, mapname in pairs(self.maps) do
     local mapfile = leveldir .. '/' .. mapname .. '.map'
@@ -65,6 +66,7 @@ function Level:restore()
     setmetatable(map, Map)
     map:set_delegate(self.delegate)
     map:update_bsp()
+    map:update_aliases()
     map.volatile.mapname = mapname
     self.layers[index] = map
     self.layer_count = self.layer_count + 1

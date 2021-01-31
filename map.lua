@@ -119,6 +119,14 @@ function Map:from(other)
   self.triggers = other.triggers
 end
 
+function Map:pick_up(alias)
+  local id = self.volatile.raliases[alias]
+  print(alias, id)
+  local item = self.things[id]
+  self.things[id] = nil
+  self:update_bsp()
+  return item
+end
 
 function Map:get_object_table(kind)
   if kind == 'wall' then
@@ -144,6 +152,7 @@ function Map:update_aliases()
       alias .. '] reused for id = ' .. id .. 
       ' and ' .. self.volatile.raliases[alias] .. '\n')
     end
+    print('reg', alias, id)
     self.volatile.raliases[alias] = id
   end
 end

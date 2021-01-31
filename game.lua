@@ -153,7 +153,8 @@ function Game:update(dt)
   -- triggers
   self.nearest_trigger = self:get_trigger()
   if self.nearest_trigger then
-    self.overlay_text = self.map.triggers[self.nearest_trigger].name
+    self.level.near(self.nearest_trigger, self)
+    --self.overlay_text = self.map.triggers[self.nearest_trigger].name
   end
 
   -- scripts

@@ -51,7 +51,7 @@ level = Level('basement', {
   [1] = 'map01',
   [2] = 'map02',
 })
-local mapindex = 2
+local mapindex = 1
 local map = nil
 local game = nil
 local level_renderer = LevelRenderer()
@@ -214,7 +214,7 @@ function EditorMain.load()
   setmap()
   -- game:set_player_position(54.25, 48.25, -math.pi) -- hole
   game:set_player_position(50, 54, -math.pi / 2) -- first key
-  game:set_player_position(51.75, 54.25, -math.pi / 2) -- door to cubby
+  --game:set_player_position(51.75, 54.25, -math.pi / 2) -- door to cubby
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL

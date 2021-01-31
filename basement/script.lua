@@ -1,9 +1,20 @@
 local util = require 'util'
+local Map = require 'map'
+
+function near(id, game)
+  local alias = game.map.aliases[id]
+  if alias == 'cellar-key-t' then
+    game.overlay_text = 'Press E to pick up the key.'
+  end
+end
 
 function trigger(id, trigger, game)
   local alias = game.map.aliases[id]
 
-  print('triggered', id)
+  print('triggered', id, alias)
+  if alias == 'cellar-key-t' then
+    game.map:pick_up('cellar-key')
+  end
   if id == 621 then
     local door = game.map.splits[608]
     if door.open or (not door.open and door.open_per < 1) then
@@ -50,6 +61,7 @@ function entered(map_id, room_id, from_id, game)
 end
 
 local script = {
+  near = near,
   trigger = trigger,
   entered = entered,
 }
