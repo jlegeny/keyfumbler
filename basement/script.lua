@@ -1,5 +1,15 @@
 local util = require 'util'
 local Map = require 'map'
+local Key = require 'object/key'
+
+local data = {
+  items = {
+    cellar_key = Key.random(Key.Material.BRASS),
+  }
+}
+
+function init(game)
+end
 
 function near(id, game)
   local alias = game.map.aliases[id]
@@ -13,7 +23,8 @@ function trigger(id, trigger, game)
 
   print('triggered', id, alias)
   if alias == 'cellar-key-t' then
-    game.map:pick_up('cellar-key')
+    id, _ = game.map:pick_up('cellar-key')
+    game.player.inventory[id] = data.items.cellar_key
   end
   if id == 621 then
     local door = game.map.splits[608]
@@ -61,6 +72,7 @@ function entered(map_id, room_id, from_id, game)
 end
 
 local script = {
+  init = init,
   near = near,
   trigger = trigger,
   entered = entered,

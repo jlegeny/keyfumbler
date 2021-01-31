@@ -117,10 +117,6 @@ end
 
 -- FUNCTIONS
 
-function restore()
-  level:restore()
-end
-
 function setmap()
   map = level.layers[mapindex]
   game:set_level(level, mapindex)
@@ -273,6 +269,9 @@ function EditorMain.keypressed(key, unicode)
       end
     elseif key == 'f6' then
       level:save(mapindex)
+    elseif key == 'f7' then
+      level:restore()
+      setmap()
     elseif key == 'backspace' then
       undoable('delete', function ()
         map:remove_objects_set(e.selection)

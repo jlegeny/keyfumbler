@@ -35,12 +35,11 @@ function Game.new()
     selected_key = 0,
   }
 
-
   self.volatile = {
     key_count = 0,
   }
 
-  self.scripts = {}
+  self.loops = {}
   return self
 end
 
@@ -60,14 +59,14 @@ function Game:set_layer(layer)
   end
 end
 
-function Game:run_loop(layer, id, override, script)
-  if self.scripts[layer] == nil then
-    self.scripts[layer] = {}
+function Game:run_loop(layer, id, override, loop)
+  if self.loops[layer] == nil then
+    self.loops[layer] = {}
   end
-  if self.scripts[layer][id] and not override then
+  if self.loops[layer][id] and not override then
     return
   end
-  self.scripts[layer][id] = script
+  self.loops[layer][id] = loop
 end
 
 function Game:set_player_position(x, y, rot)
@@ -114,7 +113,7 @@ function Game:keypressed(key, unicode)
 
   if self.nearest_trigger and self.level.trigger then
     if key == 'e' then
-      self.level.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+      self.level.script.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
     end
   end
 
@@ -153,21 +152,21 @@ function Game:update(dt)
   -- triggers
   self.nearest_trigger = self:get_trigger()
   if self.nearest_trigger then
-    self.level.near(self.nearest_trigger, self)
+    self.level.script.near(self.nearest_trigger, self)
     --self.overlay_text = self.map.triggers[self.nearest_trigger].name
   end
 
-  -- scripts
-  for layer, scripts in pairs(self.scripts) do
-    local finished_scripts = {}
-    for id, script in pairs(scripts) do
-      local finished = script(dt)
+  -- loops
+  for layer, loops in pairs(self.loops) do
+    local finished_loops = {}
+    for id, loop in pairs(loops) do
+      local finished = loop(dt)
       if finished then
-        table.insert(finished_scripts, id)
+        table.insert(finished_loops, id)
       end
     end
-    for _, id in pairs(finished_scripts) do
-      scripts[id] = nil
+    for _, id in pairs(finished_loops) do
+      loops[id] = nil
     end
   end
 
@@ -208,7 +207,7 @@ function Game:update(dt)
   end
  
   if new_room_id ~= prev_room_id then
-    self.level.entered(self.layer, new_room_id, prev_room_id, self)
+    self.level.script.entered(self.layer, new_room_id, prev_room_id, self)
   end
 end
 

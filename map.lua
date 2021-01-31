@@ -121,11 +121,10 @@ end
 
 function Map:pick_up(alias)
   local id = self.volatile.raliases[alias]
-  print(alias, id)
   local item = self.things[id]
   self.things[id] = nil
   self:update_bsp()
-  return item
+  return id, item
 end
 
 function Map:get_object_table(kind)
