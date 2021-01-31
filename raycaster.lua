@@ -1,4 +1,5 @@
 local Line = require 'line'
+local geom = require 'geom'
 local lines = require 'lines'
 
 local RayCaster = {}
@@ -66,11 +67,44 @@ RayCaster.fast_collisions = function(map, vector)
             }
           end
         end
+        local cthings = {}
+        if #region.things > 0 then
+          for _, tid in ipairs(region.things) do
+            local thing = map.things[tid]
+            if not thing then
+              print(tid)
+            end
+            local nox, noy = -thing.y + vector.ay, thing.x - vector.ax
+            local dox, doy = lines.intersection(vector, Line(thing.x, thing.y, thing.x + nox, thing.y + noy))
+            local pdist = math.sqrt(geom.sqd(thing.x, thing.y, dox, doy))
+            local tdist = math.sqrt(geom.sqd(vector.ax, vector.ay, thing.x, thing.y))
+            local dot = -Line.fast_dot(vector, thing.x, thing.y)
+            local sign = 0
+            if dot ~= 0 then
+              sign = dot / math.abs(dot)
+            end
+            local twidth = thing.width / tdist
+            if tdist < 0.75 then
+              twidth = twidth * math.tan(tdist)
+            end
+            if pdist < twidth / 2 then 
+              table.insert(cthings, {
+                posx = (sign * pdist + twidth / 2) / twidth,
+                dot = dot,
+                sign = sign,
+                id = tid,
+                obj = thing,
+                dist = tdist,
+              })
+            end
+          end
+        end
         table.insert(collisions, {
           x = int_x,
           y = int_y,
           sqd = (int_x - vector.ax) ^ 2 + (int_y - vector.ay) ^ 2,
           id = node.ogid,
+          things = cthings,
           room_id = room_id,
           is_split = node.is_split,
           door = door,
@@ -193,11 +227,13 @@ RayCaster.extended_collisions = function(map, vector)
         sqd = spot_ds[next_spot] ^ 2,
         id = 0,
         room_id = col.room_id,
+        things = col.things,
         is_spot = true,
         ceiling_height = col.ceiling_height,
         floor_height = col.floor_height,
         ambient_light = col.ambient_light,
       })
+      col.things = {}
       next_spot = next_spot + 1
     end
     table.insert(collisions_and_spots, col)
@@ -383,7 +419,7 @@ RayCaster.circular_collision_node = function(map, node, ox, oy, dx, dy, r2)
   if dot > 0 and dot > odot then
     return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
   end
-  if dot < 0 and dot > odot then
+  if dot < 0 and dot < odot then
     return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
   end
 
@@ -394,7 +430,7 @@ RayCaster.circular_collision_node = function(map, node, ox, oy, dx, dy, r2)
       end
     end
 
-    if dot > 0 then
+    if dot > -BSP_TOLERANCE then
       return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
     else
       return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
@@ -406,11 +442,13 @@ RayCaster.circular_collision_node = function(map, node, ox, oy, dx, dy, r2)
   if d < r2 then
     return node
   end
-  if dot > 0 then
-    return RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
-  else
-    return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
+  if dot > -BSP_TOLERANCE then
+    local hit_front = RayCaster.circular_collision_node(map, node.front, ox, oy, dx, dy, r2)
+    if hit_front then
+      return hit_front
+    end
   end
+  return RayCaster.circular_collision_node(map, node.back, ox, oy, dx, dy, r2)
 end
 
 RayCaster.circular_collision = function(map, ox, oy, dx, dy, r2)

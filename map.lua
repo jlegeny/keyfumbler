@@ -263,6 +263,10 @@ function Map:place_line_in_bsp(node, ogid, line, next_id, obj)
       id = fid,
       parent = new_node,
       up = fid,
+      things = {},
+      ceiling_height = 9,
+      floor_height = -9,
+      ambient_light = 0,
     }
     local bid = next_id()
     local back = {
@@ -270,6 +274,10 @@ function Map:place_line_in_bsp(node, ogid, line, next_id, obj)
       id = bid,
       parent = new_node,
       up = bid,
+      things = {},
+      ceiling_height = 9,
+      floor_height = -9,
+      ambient_light = 0,
     }
     new_node.front = front
     new_node.back = back
@@ -316,6 +324,20 @@ function Map:place_room_in_bsp(node, ogid, room)
   end
 end
 
+function Map:place_thing_in_bsp(node, ogid, thing)
+  if node.is_leaf then
+    table.insert(node.things, ogid)
+  else
+    local dot = Line.fast_dot(node.line, thing.x, thing.y)
+    if dot < 0 then
+      self:place_thing_in_bsp(node.back, ogid, thing)
+    else
+      self:place_thing_in_bsp(node.front, ogid, thing)
+    end
+  end
+end
+
+
 function Map.print_bsp(node, depth)
   local str = ''
   for i = 1, depth do
@@ -327,7 +349,7 @@ function Map.print_bsp(node, depth)
     parent_id = node.parent.id
   end
   if node.is_leaf then
-    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. util.str(node.room_id) .. ' up ' .. util.str(node.up)
+    str = str .. 'leaf ' .. node.id .. ' parent ' .. parent_id .. ' room ' .. util.str(node.room_id) .. ' up ' .. util.str(node.up) .. ' ch ' .. util.str(node.ceiling_height) .. ' fh ' .. util.str(node.floor_height)
     print(str)
   else
     if node.is_split then
@@ -445,6 +467,10 @@ function Map:update_bsp()
     is_leaf = true,
     parent = nil,
     up = bsp_id,
+    things = {},
+    ceiling_height = 9,
+    floor_height = -9,
+    ambient_light = 0,
   }
   self.volatile.leaves = {}
 
@@ -494,6 +520,17 @@ function Map:update_bsp()
   for i, ogid in ipairs(sorted_ids) do
     local room = self.rooms[ogid]
     self:place_room_in_bsp(self.volatile.bsp, ogid, room)
+  end
+
+  debug(' ... placing things')
+  sorted_ids = {}
+  for k, _ in pairs(self.things) do
+    table.insert(sorted_ids, k)
+  end
+  table.sort(sorted_ids)
+
+  for i, ogid in ipairs(sorted_ids) do
+    self:place_thing_in_bsp(self.volatile.bsp, ogid, self.things[ogid])
   end
 
   if self.volatile.delegate ~= nil then

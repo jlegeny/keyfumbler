@@ -3,8 +3,8 @@ local engyne = require 'engyne'
 local raycaster = require 'raycaster'
 
 local lines = require 'lines'
-local textures = require 'textures'
 
+local Catalog = require 'catalog'
 local Game = require 'game'
 local Line = require 'line'
 local Map = require 'map'
@@ -25,6 +25,7 @@ local EditorState = editor.EditorState
 local LevelRenderer = require 'edytor/renderer_level'
 local LevelOverlayRenderer = require 'edytor/renderer_level_overlay'
 local ToolsRenderer = require 'edytor/renderer_tools'
+local SelectionRenderer = require 'edytor/renderer_selection'
 local HistoryRenderer = require 'edytor/renderer_history'
 local InfoRenderer = require 'edytor/renderer_info'
 local DrawInfoRenderer = require 'edytor/renderer_drawinfo'
@@ -50,20 +51,23 @@ level = Level('basement', {
   [1] = 'map01',
   [2] = 'map02',
 })
-mapindex = 2
-map = nil
-game = nil
-level_renderer = LevelRenderer()
-level_overlay_renderer = LevelOverlayRenderer(level_renderer)
-tools_renderer = ToolsRenderer()
-history_renderer = HistoryRenderer()
-info_renderer = InfoRenderer()
-drawinfo_renderer = DrawInfoRenderer()
-item_renderer = ItemRenderer()
-tabs_renderer = TabsRenderer()
-volume_renderer = VolumeRenderer()
-volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
-statusbar_renderer = StatusBarRenderer()
+local mapindex = 2
+local map = nil
+local game = nil
+local level_renderer = LevelRenderer()
+local level_overlay_renderer = LevelOverlayRenderer(level_renderer)
+local tools_renderer = ToolsRenderer()
+local selection_renderer = SelectionRenderer()
+local history_renderer = HistoryRenderer()
+local info_renderer = InfoRenderer()
+local drawinfo_renderer = DrawInfoRenderer()
+local item_renderer = ItemRenderer()
+local tabs_renderer = TabsRenderer()
+local volume_renderer = VolumeRenderer()
+local volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
+local statusbar_renderer = StatusBarRenderer()
+local decals = Catalog.new(Catalog.decals)
+local sprites = Catalog.new(Catalog.sprites)
 
 WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
@@ -87,16 +91,29 @@ delegate.notify = function(event)
 end
 
 delegate.image_name = function(index)
-  return textures.image_names[index]
+  return decals.image_names[index]
 end
 
 delegate.image_data = function()
-  return textures.image_data
+  return decals.image_data
 end
 
 delegate.image_count = function()
-  return textures.count
+  return decals.count
 end
+
+delegate.sprite_name = function(index)
+  return sprites.image_names[index]
+end
+
+delegate.sprite_data = function()
+  return sprites.image_data
+end
+
+delegate.sprite_count = function()
+  return sprites.count
+end
+
 
 -- FUNCTIONS
 
@@ -136,7 +153,7 @@ function setup(w, h)
   local level_h = h - bb_h - 3 * pad
 
   level_renderer:setup(pad, pad, level_w, level_h)
-  volume_renderer:setup(sb_x, pad , volume_w, volume_h, textures.image_data)
+  volume_renderer:setup(sb_x, pad , volume_w, volume_h, decals.image_data, sprites.image_data)
 
   tabs_renderer:setup(sb_x, tabs_y, sb_w, tabs_h)
 
@@ -145,6 +162,7 @@ function setup(w, h)
   info_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   drawinfo_renderer:setup(sb_x, sb_y, sb_w, sb_h)
   item_renderer:setup(sb_x, sb_y, sb_w, sb_h)
+  selection_renderer:setup(sb_x, sb_y, sb_w, sb_h)
 
   statusbar_renderer:setup(bb_x, bb_y, bb_w, bb_h)
 
@@ -190,13 +208,13 @@ function EditorMain.load()
   love.window.setTitle("Engyne Edytor")
   love.window.setMode(WINDOW_WIDTH, WINDOW_HEIGHT, {fullscreen = false, vsync = true, resizable = true, minwidth = WINDOW_WIDTH, minheight = WINDOW_HEIGHT})
 
-  textures.load()
-
   -- fonts
   engyne.set_default_font()
 
   setmap()
-  game:set_player_position(54.25, 48.25, 2 * -math.pi / 2)
+  -- game:set_player_position(54.25, 48.25, -math.pi) -- hole
+  game:set_player_position(50, 54, -math.pi / 2) -- first key
+  game:set_player_position(51.75, 54.25, -math.pi / 2) -- door to cubby
 
   e.mode = EditorMode.DRAW
   e.probe = Draw.WALL
@@ -357,6 +375,11 @@ function EditorMain.keypressed(key, unicode)
     if key == 'f1' then
       Map.print_bsp(map.volatile.bsp, 0)
       e.state = State.IDLE
+    elseif key == 'f2' then
+      for id, thing in pairs(map.things) do
+        print(id .. ' => ' .. thing.x .. ', ' .. thing.y)
+      end
+      e.state = State.IDLE
     elseif key == 'escape' then
       e.state = State.IDLE
     end
@@ -396,7 +419,7 @@ function EditorMain.mousepressed(mx, my, button, istouch)
             elseif e.draw == Draw.LIGHT then
               obj = Light(rx, ry, 4)
             elseif e.draw == Draw.THING then
-              obj = Thing(rx, ry, 1, 1, Thing.Type.DOODAD, {})
+              obj = Thing('missing', rx, ry, 1, 1, 1, {})
             elseif e.draw == Draw.TRIGGER then
               obj = Trigger(rx, ry, 1, 'trigger')
             end
@@ -452,6 +475,9 @@ function EditorMain.draw()
     item_renderer:draw_canvas()
   elseif e.sidebar == Sidebar.DRAW then
     drawinfo_renderer:draw_canvas()
+  elseif e.sidebar == Sidebar.SELECTION then
+    selection_renderer:draw_canvas()
+    selection_renderer:draw(e)
   end
 
   statusbar_renderer:reset()
@@ -492,20 +518,22 @@ function EditorMain.draw()
       e.selection_line_r.bx = rx
       e.selection_line_r.by = ry
     else
-      e.state = State.IDLE
       e.selection = map:bound_objects_set(e.selection_line_r)
-      item_renderer:reset_item()
-      if e:selection_count() == 1 then
-        local id, kind = next(e.selection)
-        item_renderer:set_item(map, id, kind)
-        e.sidebar = Sidebar.ITEM
-        if kind == 'room' then
-          e.last_selected_room = id
-        end
-      elseif e:selection_count() > 1 then
-        e.sidebar = Sidebar.SELECTION
-      end
+      e.state = State.RESET_INFO
     end
+  elseif e.state == State.RESET_INFO then
+    item_renderer:reset_item()
+    if e:selection_count() == 1 then
+      local id, kind = next(e.selection)
+      item_renderer:set_item(map, id, kind)
+      e.sidebar = Sidebar.ITEM
+      if kind == 'room' then
+        e.last_selected_room = id
+      end
+    elseif e:selection_count() > 1 then
+      e.sidebar = Sidebar.SELECTION
+    end
+    e.state = State.IDLE
   elseif e.state == State.IC_DRAWING_SPLIT then
     if love.mouse.isDown(1) then
       e.current_rline.bx = rx

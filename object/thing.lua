@@ -7,12 +7,7 @@ setmetatable(Thing, {
   end,
 })
 
-Thing.Type = {
-  DOODAD = 1,
-  KEY = 2,
-}
-
-function Thing.new(x, y, z, width, height, what, meta)
+function Thing.new(name, x, y, z, width, height, meta)
   local self = {}
   setmetatable(self, Thing)
   self.kind = 'thing'
@@ -21,9 +16,12 @@ function Thing.new(x, y, z, width, height, what, meta)
   self.z = z
   self.width = width
   self.height = height
-  self.what = what
+  self.name = name
   self.meta = meta
   return self
+end
+
+function Thing:draw()
 end
 
 return Thing

@@ -173,22 +173,33 @@ function ItemRenderer:draw(map, editor_state)
       end
       self:print_stat('[${i}]:' % {i = i}, decal.name, 'name')
       if self.selected == self._stat_n then
-        decal.x = decal.x + self._stat_mod * 0.1
+        decal.x = decal.x + self._stat_mod * 0.125
       end
       self:print_stat('  x:', decal.x, 'ratio')
       if self.selected == self._stat_n then
-        decal.y = decal.y + self._stat_mod * 0.1
+        decal.y = decal.y + self._stat_mod * 0.125
       end
       self:print_stat('  y:', decal.y, 'ratio')
       if self.selected == self._stat_n then
-        decal.width = decal.width + self._stat_mod * 0.1
+        decal.width = decal.width + self._stat_mod * 0.125
       end
       self:print_stat('  w:', decal.width, 'ratio')
       if self.selected == self._stat_n then
-        decal.height = decal.height + self._stat_mod * 0.1
+        decal.height = decal.height + self._stat_mod * 0.125
       end
       self:print_stat('  h:', decal.height, 'ratio')
     end
+  end
+
+  if self.kind == 'room' or self.kind == 'light' or self.kind == 'thing' or self.kind == 'trigger' then
+    if self.selected == self._stat_n then
+      self.obj.x = self.obj.x + self._stat_mod * 0.125
+    end
+    self:print_stat('  x:', self.obj.x, 'ratio')
+    if self.selected == self._stat_n then
+      self.obj.y = self.obj.y + self._stat_mod * 0.125
+    end
+    self:print_stat('  y:', self.obj.y, 'ratio')
   end
 
 
@@ -216,9 +227,32 @@ function ItemRenderer:draw(map, editor_state)
 
   if self.kind == 'trigger' then
     if self.selected == self._stat_n then
-      self.obj.r = self.obj.r + self._stat_mod * 0.1
+      self.obj.r = self.obj.r + self._stat_mod * 0.125
     end
     self:print_stat('radius', self.obj.r, 'radius')
+  end
+
+  if self.kind == 'thing' then
+    if self.selected == self._stat_n then
+      local ni = self.delegate.sprite_data()[self.obj.name].index
+      ni = (((ni - 1) + self._stat_mod) % self.delegate.sprite_count()) + 1
+      self.obj.name = self.delegate.sprite_name(ni)
+    end
+    self:print_stat('what', self.obj.name, 'name')
+    if self.selected == self._stat_n then
+      self.obj.z = self.obj.z + self._stat_mod * 0.125
+    end
+    self:print_stat('  z:', self.obj.z, 'ratio')
+    if self.selected == self._stat_n then
+      self.obj.width = self.obj.width + self._stat_mod * 0.125
+      self.obj.width = math.max(0.125, self.obj.width)
+    end
+    self:print_stat('  w:', self.obj.width, 'ratio')
+    if self.selected == self._stat_n then
+      self.obj.height = self.obj.height + self._stat_mod * 0.125
+      self.obj.height = math.max(0.125, self.obj.height)
+    end
+    self:print_stat('  h:', self.obj.height, 'ratio')
   end
 
   if self.delegate ~= nil then

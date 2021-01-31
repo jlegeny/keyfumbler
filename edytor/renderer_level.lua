@@ -24,6 +24,10 @@ function LevelRenderer.new()
   self.offset_x = 0
   self.offset_y = 0
 
+  self.layers = {
+    lights = true
+  }
+
   self:setup(0, 0, 200, 200)
 
   return self
@@ -160,6 +164,18 @@ function LevelRenderer:draw_lights(map, editor_state)
     love.graphics.circle('line', cx, cy, 3)
   end
 end
+
+function LevelRenderer:draw_things(map, editor_state)
+  for id, t in pairs(map.things) do
+    local cx, cy = self:canvas_point(t.x, t.y)
+    engyne.set_color('copper', 6)
+    if editor_state.selection[id] ~= nil then
+      engyne.set_color(unpack(hl_color))
+    end
+    love.graphics.polygon('line', cx, cy - math.sqrt(2), cx - 2, cy + 2, cx + 2, cy + 2)
+  end
+end
+
 
 function LevelRenderer:draw_triggers(map, editor_state)
   for id, t in pairs(map.triggers) do
@@ -442,8 +458,12 @@ function LevelRenderer:draw(map, editor_state)
   end
 
   self:draw_rooms(map, editor_state)
-  self:draw_lights(map, editor_state)
+  self:draw_things(map, editor_state)
   self:draw_triggers(map, editor_state)
+
+  if self.layers.lights then
+    self:draw_lights(map, editor_state)
+  end
 
   local mode_str = self:mode_str()
   local mode_x = self.x + self.width - 15 - string.len(mode_str) * 7

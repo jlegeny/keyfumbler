@@ -51,13 +51,14 @@ function VolumeRenderer.new()
   return self
 end
 
-function VolumeRenderer:setup(x, y, width, height, textures)
+function VolumeRenderer:setup(x, y, width, height, decal_textures, sprites)
   self.x = x
   self.y = y
   self.mode = 'photo'
   self.width = width
   self.height = height
-  self.textures = textures
+  self.decal_textures = decal_textures
+  self.sprites = sprites
 
   self.flat_light = false
 
@@ -95,6 +96,9 @@ end
 
 local ns = 0
 function VolumeRenderer:surface_segment_renderer(ox, oy, s)
+  if s.kind == 'things' then
+    return
+  end
   if s.kind == 'floor' then
     if ns == 0 then
       love.graphics.setColor(1, 0, 0, 0.5)
@@ -117,13 +121,17 @@ end
 
 function VolumeRenderer:light_segment_renderer(ox, oy, s)
   local illumination = 0.0
-  local light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
+  local light
 
-  if s.kind == 'wall' or s.kind == 'split' then
+  if s.kind == 'wall' or s.kind == 'split' or s.kind == 'door' then
+    light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
     love.graphics.setColor(light, light, light, 1)
-  else
+  elseif s.kind == 'floor' or s.kind == 'ceiling' then
+    light = math.min(illumination + 1 / (math.sqrt(s.dist / 2)), 1)
     love.graphics.setColor(light / 2, light / 2, light / 2, 1)
     -- engyne.set_color('grey', 0)
+  else
+    return
   end
 
   local top = self.height * (s.top + 1) / 2
@@ -166,7 +174,7 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
         local h = rbottom - rtop
         local dtop = math.floor(rtop + h * decal.y)
         local dbottom = math.floor(rtop + h * (decal.y + decal.height))
-        local texture = self.textures[decal.name]
+        local texture = self.decal_textures[decal.name]
         local start = math.max(0, dtop)
         local stop = math.min(self.height, dbottom)
         for i = start, stop do
@@ -184,7 +192,7 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
       end
       love.graphics.setBlendMode('alpha')
     end
-  else
+  elseif s.kind == 'floor' or s.kind == 'ceiling' then
     local far_illumination = ((s.ambient_light + s.dynamic_light) / 64)
     local close_illumination = ((s.ambient_light + s.prev_dynamic_light) / 64)
     if self.flat_light then
@@ -232,6 +240,34 @@ function VolumeRenderer:photo_segment_renderer(ox, oy, s)
     else
       engyne.set_color('grey', close_color)
       love.graphics.line(ox, oy + top, ox, oy + bottom)
+    end
+
+  elseif s.kind == 'things' then
+    for _, thing in ipairs(s.things) do
+      local tscale = 1 / thing.dist
+      local theight = thing.obj.height * tscale
+      local mid = tscale * (s.player_eye_h + s.player_z - thing.obj.z)
+      local rmid = (mid + 1) / 2
+      local dtop =  math.floor(self.height * (rmid - theight / 2))
+      local dbottom =  math.floor(self.height * (rmid + theight / 2))
+      local texture = self.sprites[thing.obj.name]
+      if not texture then
+        print(thing.obj.name)
+      end
+      local start = math.max(0, dtop)
+      local stop = math.min(self.height, dbottom)
+      for i = start, stop do
+        local tx = thing.posx * (texture.width - 1)
+        local ty = (i - dtop) / (dbottom - dtop) * (texture.height - 1)
+        local r, g, b, a = texture.texture:getPixel(tx, ty)
+        local lum = 0.5 --wall_color / 62
+        love.graphics.setColor(r * lum, g * lum, b * lum, a)
+        if a > 0 then
+          love.graphics.points(
+          ox, oy + i
+          )
+        end
+      end
     end
   end
 
@@ -357,7 +393,7 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
 
       local floor_top = scale * (eye_h + player.z - cc.floor_height)
       if floor_top <= prev_top then
-        table.insert(segments, {
+       table.insert(segments, {
           kind = 'floor',
           id = cc.room_id,
           dist = dist,
@@ -370,6 +406,18 @@ VolumeRenderer.segments = function(eye_x, eye_y, eye_dx, eye_dy, player, collisi
           prev_dynamic_light = prev_dynamic_light,
         })
         prev_top = floor_top
+      end
+      if cc.things and #cc.things then
+       table.insert(segments, {
+          kind = 'things',
+          id = cc.room_id,
+          things = cc.things,
+          player_z = player.z,
+          player_eye_h = player:eye_height(),
+          ambient_light = cc.ambient_light,
+          dynamic_light = cc.dynamic_light,
+          prev_dynamic_light = prev_dynamic_light,
+        })
       end
 
       local ceiling_bottom = scale * (eye_h + player.z - cc.ceiling_height)

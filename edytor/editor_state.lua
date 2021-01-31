@@ -12,6 +12,7 @@ State = {
   IC_DRAWING_VISIBILITY = 105,
   IC_DRAWING_CONNECTIVITY = 106,
   TI_NAMING_ALIAS = 201,
+  RESET_INFO = 301,
 }
 
 EditorMode = {
@@ -98,6 +99,7 @@ function EditorState:undo(map)
   local tail = table.remove(self.undo_stack, #self.undo_stack)
   table.insert(e.redo_stack, tail)
   map:from(tail.pre)
+  map:update_bsp()
 end
 
 function EditorState:redo(map)
@@ -107,6 +109,7 @@ function EditorState:redo(map)
   local tail = table.remove(self.redo_stack, #self.redo_stack)
   table.insert(e.undo_stack, tail)
   map:from(tail.post)
+  map:update_bsp()
 end
 
 function EditorState:undoable(op, clean_redo_stack)
@@ -232,4 +235,5 @@ return {
   State = State,
   Probe = Probe,
   EditorState = EditorState,
+  Sidebar = Sidebar,
 }
