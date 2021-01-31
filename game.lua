@@ -111,7 +111,7 @@ function Game:keypressed(key, unicode)
     print('noclip', self.player.noclip)
   end
 
-  if self.nearest_trigger and self.level.trigger then
+  if self.nearest_trigger and self.level.script.trigger then
     if key == 'e' then
       self.level.script.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
     end
