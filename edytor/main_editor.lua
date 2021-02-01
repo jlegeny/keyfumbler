@@ -336,11 +336,11 @@ function EditorMain.keypressed(key, unicode)
       end
     elseif key == 'left' then
       if e.sidebar == Sidebar.ITEM then
-        item_renderer:dec_stat()
+        item_renderer:dec_stat(shift)
       end
     elseif key == 'right' then
       if e.sidebar == Sidebar.ITEM then
-        item_renderer:inc_stat()
+        item_renderer:inc_stat(shift)
       end
     elseif key == 'l' then
       volume_renderer.flat_light = not volume_renderer.flat_light

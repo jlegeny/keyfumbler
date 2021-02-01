@@ -103,12 +103,20 @@ function ItemRenderer:prev_stat()
   end
 end
 
-function ItemRenderer:dec_stat()
-  self._stat_mod = self._stat_mod - 1
+function ItemRenderer:dec_stat(shift)
+  mod = 1
+  if shift then
+    mod = 0.5
+  end
+  self._stat_mod = self._stat_mod - mod
 end
 
-function ItemRenderer:inc_stat()
-  self._stat_mod = self._stat_mod + 1
+function ItemRenderer:inc_stat(shift)
+  mod = 1
+  if shift then
+    mod = 0.5
+  end
+  self._stat_mod = self._stat_mod + mod
 end
 
 function ItemRenderer:draw(map, editor_state)
