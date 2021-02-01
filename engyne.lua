@@ -5,11 +5,6 @@ local engyne = {}
 local default_font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 12)
 local small_font = love.graphics.newFont("IBMPlexMono-SemiBold.ttf", 8)
 
-local dark_grey_min = {0.0625, 0.0625, 0.0625}
-local dark_grey_max = {0.5, 0.5, 0.5}
-local light_grey_min = {0.5625, 0.5625, 0.5625}
-local light_grey_max = {1, 1, 1}
-
 function get_color(min, max, intensity)
   local dr = max[1] - min[1]
   local dg = max[2] - min[2]

@@ -1,6 +1,6 @@
 function grey(intensity)
   local grey = ((intensity + 1) / 64) ^ 2.2 * 255
-  return { grey, grey, grey }
+  return { grey, grey, grey * 0.8 }
 end
 
 function greys()
