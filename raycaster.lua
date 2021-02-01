@@ -425,7 +425,7 @@ RayCaster.circular_collision_node = function(map, node, ox, oy, dx, dy, r2)
 
   if node.is_split then
     if map.splits[node.ogid].is_door then
-      if not map.splits[node.ogid].is_open then
+      if not map.splits[node.ogid].open then
         goto collide
       end
     end

@@ -20,9 +20,9 @@ function Game.new()
     ambience = love.audio.newSource('assets/ambience.ogg', 'static'),
     club = love.audio.newSource('assets/club.ogg', 'static')
   }
-  self.audio.ambience:setVolume(0.1)
+  self.audio.ambience:setVolume(0)
   self.audio.ambience:setLooping(true)
-  self.audio.ambience:setVolume(0.1)
+  self.audio.club:setVolume(1)
   self.audio.club:setLooping(true)
   -- self.audio.ambience:play()
 
@@ -61,7 +61,7 @@ end
 
 function Game:set_layer(layer)
   self.layer = layer
-  self.map = level.layers[layer]
+  self.map = self.level.layers[layer]
   self:update_player()
 
   if self.delegate then

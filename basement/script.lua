@@ -34,7 +34,9 @@ function init(game)
 
 
   -- cheats
-  game.player.inventory[622] = items.entrance_key
+  -- entrance key
+  -- game.player.inventory[622] = items.entrance_key
+  locks['entrance.door'].locked = false
   game:update_inventory()
 end
 
@@ -112,7 +114,6 @@ function toggle_door(id, game)
       if door.open_per <= 0 then
         door.open_per = 0
         door.open = true
-        print('oppeeeen')
         return true
       end
       return false
@@ -188,19 +189,71 @@ end
 
 function entered(map_id, room_id, from_id, game)
   local alias = game.map.aliases[room_id]
-  print('layer ' .. map_id .. ' entered room ' .. util.str(room_id) .. ' [' .. util.str(alias) .. '] from ' .. util.str(from_id))
+  local falias = nil
+  if from_id then
+    falias = game.map.aliases[from_id]
+  end
+  print('layer ' .. map_id .. ' entered room ' .. util.str(room_id) .. ' [' .. util.str(alias) .. '] from ' .. util.str(from_id) .. ' [' .. util.str(falias) .. ']')
 
-  -- level 01-02 teleport
+  -- music fadeout
   if map_id == 1 then
-    if room_id == 530 and from_id == 529 then
-      game:set_layer(2)
-    end
+    goto entered_entrance
+  elseif map_id == 2 then
+    goto entered_cellar
   end
 
-  if map_id == 2 then
-    if room_id == 529 and from_id == 530 then
-      game:set_layer(1)
-    end
+  ::entered_entrance::
+  if alias == 'down.step.2' and falias == 'down.step.1' then
+    game.audio.club:setVolume(0.8)
+  elseif alias == 'down.step.3' and falias == 'down.step.2' then
+    game.audio.club:setVolume(0.6)
+  elseif alias == 'down.step.4' and falias == 'down.step.3' then
+    game.audio.club:setVolume(0.4)
+  elseif alias == 'down.step.5' and falias == 'down.step.4' then
+    game.audio.club:setVolume(0.4)
+    game.audio.ambience:setVolume(0.1)
+    game.audio.ambience:play()
+  elseif alias == 'down.step.6' and falias == 'down.step.5' then
+    game.audio.club:setVolume(0.2)
+    game.audio.ambience:setVolume(0.3)
+  elseif alias == 'down.step.7' and falias == 'down.step.6' then
+    game.audio.club:setVolume(0.1)
+    game.audio.ambience:setVolume(0.5)
+  elseif alias == 'down.step.8' and falias == 'down.step.7' then
+    game.audio.ambience:setVolume(1)
+    game.audio.club:setVolume(0.05)
+  elseif alias == 'down.step.7' and falias == 'down.step.8' then
+  elseif alias == 'down.step.6' and falias == 'down.step.7' then
+    game.audio.club:setVolume(0.1)
+    game.audio.ambience:setVolume(0.5)
+  elseif alias == 'down.step.5' and falias == 'down.step.6' then
+    game.audio.club:setVolume(0.2)
+    game.audio.ambience:setVolume(0.3)
+  elseif alias == 'down.step.4' and falias == 'down.step.5' then
+    game.audio.club:setVolume(0.4)
+    game.audio.ambience:setVolume(0.1)
+  elseif alias == 'down.step.3' and falias == 'down.step.4' then
+    game.audio.club:setVolume(0.4)
+    game.audio.ambience:stop()
+  elseif alias == 'down.step.2' and falias == 'down.step.3' then
+    game.audio.club:setVolume(0.6)
+  elseif alias == 'down.step.1' and falias == 'down.step.2' then
+    game.audio.club:setVolume(0.8)
+  elseif alias == nil and falias == 'down.step.1' then
+    game.audio.club:setVolume(1)
+  end
+
+
+  -- level 01-02 teleport
+  if room_id == 530 and from_id == 529 then
+    game:set_layer(2)
+    game.audio.club:stop()
+  end
+
+  ::entered_cellar::
+  if room_id == 529 and from_id == 530 then
+    game:set_layer(1)
+    game.audio.club:play()
   end
 
 end
