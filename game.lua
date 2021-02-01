@@ -1,3 +1,4 @@
+local util = require 'util'
 local geom = require 'geom'
 local Line = require 'line'
 
@@ -16,10 +17,13 @@ function Game.new()
   local self = {}
   setmetatable(self, Game)
   self.audio = {
-    ambience = love.audio.newSource("assets/ambience.ogg", "static")
+    ambience = love.audio.newSource('assets/ambience.ogg', 'static'),
+    club = love.audio.newSource('assets/club.ogg', 'static')
   }
-  self.audio.ambience:setVolume(0.25)
+  self.audio.ambience:setVolume(0.1)
   self.audio.ambience:setLooping(true)
+  self.audio.ambience:setVolume(0.1)
+  self.audio.club:setLooping(true)
   -- self.audio.ambience:play()
 
   self.player = Player()
@@ -28,6 +32,7 @@ function Game.new()
   self.map = nil
   self.nearest_trigger = nil
   self.overlay_text = nil
+  self.dialogue = nil
 
   self.keyring = {
     state = 'closed',
@@ -39,6 +44,8 @@ function Game.new()
     key_count = 0,
   }
 
+  self.script_enabled = true
+
   self.loops = {}
   return self
 end
@@ -47,6 +54,9 @@ function Game:set_level(level, layer)
   self.level = level
   self.layer = layer
   self.map = level.layers[layer]
+  if self.script_enabled then
+    self.level.script.init(self)
+  end
 end
 
 function Game:set_layer(layer)
@@ -78,11 +88,20 @@ end
 
 function Game:update_inventory()
   self.volatile.key_count = 0
+  self.volatile.key_map = {}
   for id, object in pairs(self.player.inventory) do
     if object.kind == 'key' then
       self.volatile.key_count = self.volatile.key_count + 1
+      self.volatile.key_map[self.volatile.key_count] = object
     end
   end
+end
+
+function Game:chosen_key()
+  if self.keyring.state ~= 'open' then
+    return nil
+  end
+  return self.volatile.key_map[self.keyring.selected_key + 1]
 end
 
 function Game:update_player()
@@ -110,10 +129,21 @@ function Game:keypressed(key, unicode)
     self.player.noclip = not self.player.noclip
     print('noclip', self.player.noclip)
   end
+  
+  if self.dialogue then
+    if key == 'space' then
+      self.level.script.dialogue(self.dialogue.id)
+    end
+    return
+  end
 
   if self.nearest_trigger and self.level.script.trigger then
-    if key == 'e' then
-      self.level.script.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+    if self.script_enabled then
+      if key == 'e' then
+        self.level.script.trigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+      elseif key == 'q' then
+        self.level.script.alttrigger(self.nearest_trigger, self.map.triggers[self.nearest_trigger], self)
+      end
     end
   end
 
@@ -127,7 +157,7 @@ function Game:keypressed(key, unicode)
     end
   end
 
-  if key == 'f' then
+  if key == 'f' and self.volatile.key_count > 0 then
     local kr = self.keyring
     if kr.state == 'closed' or kr.state == 'closing' then
       kr.state = 'opening'
@@ -138,9 +168,9 @@ function Game:keypressed(key, unicode)
 
   if self.keyring.state == 'open' then
     local sk = self.keyring
-    if key == 'right' then
+    if key == 'right' or key == '3' then
       sk.selected_key = (sk.selected_key + 1) % self.volatile.key_count
-    elseif key == 'left' then
+    elseif key == 'left' or key == '1' then
       sk.selected_key = (sk.selected_key - 1) % self.volatile.key_count
     end
   end
@@ -152,8 +182,11 @@ function Game:update(dt)
   -- triggers
   self.nearest_trigger = self:get_trigger()
   if self.nearest_trigger then
-    self.level.script.near(self.nearest_trigger, self)
-    --self.overlay_text = self.map.triggers[self.nearest_trigger].name
+    if self.script_enabled then
+      self.level.script.near(self.nearest_trigger, self)
+    else
+      self.overlay_text = 'Near ' .. self.nearest_trigger .. ' ' .. util.str(self.map.aliases[self.nearest_trigger])
+    end
   end
 
   -- loops
@@ -176,7 +209,8 @@ function Game:update(dt)
     prev_room_id = self.player.region.room_id
   end
  
-  if self.player.posture == Player.Posture.STAND or self.player.posture == Player.Posture.CROUCH then
+  if self.dialogue then
+  elseif self.player.posture == Player.Posture.STAND or self.player.posture == Player.Posture.CROUCH then
     -- player controls
     if love.keyboard.isDown('a') then
       self.player:rotate_ccw(dt)
@@ -206,7 +240,7 @@ function Game:update(dt)
     new_room_id = self.player.region.room_id
   end
  
-  if new_room_id ~= prev_room_id then
+  if self.script_enabled and new_room_id ~= prev_room_id then
     self.level.script.entered(self.layer, new_room_id, prev_room_id, self)
   end
 end

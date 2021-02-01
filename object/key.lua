@@ -93,6 +93,36 @@ function Key.new(key_type, material, body, pinning, wording)
   return self
 end
 
+function Key:fits(lock)
+  if self.key_type ~= lock.key_type then
+    return false
+  end
+  
+  if #self.wording ~= #lock.wording then
+    return false
+  end
+
+  for i = 1, #self.wording do
+    local kw = self.wording[i]
+    local lw = lock.wording[i]
+    if kw[2] ~= lw[2] then
+      return false
+    end
+    if #kw[1] ~= #lw[1] then
+      return false
+    end
+    for j = 1, #kw[1] do
+      if kw[1][j] ~= lw[1][j] then
+        return false
+      end
+    end
+  end
+  return true
+end
+
+function Key.turns_in(lock)
+  return true
+end
 
 function Key:carve()
   function ensure(z, y, x)

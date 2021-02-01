@@ -198,6 +198,7 @@ setmetatable(EditorMain, {
 
 function EditorMain.load()
   game = Game:new()
+  game.script_enabled = false
   game.delegate = delegate
 
   -- window
@@ -272,6 +273,7 @@ function EditorMain.keypressed(key, unicode)
     elseif key == 'f7' then
       level:restore()
       setmap()
+      map.aliases[603] = nil
     elseif key == 'backspace' then
       undoable('delete', function ()
         map:remove_objects_set(e.selection)

@@ -1,18 +1,23 @@
 local engyne = require 'engyne'
+local Catalog = require 'catalog'
 local Game = require 'game'
 local Key = require 'object/key'
 local Level = require 'level'
-local textures = require 'textures'
 
 local VolumeRenderer = require 'renderer_volume'
 local VolumeOverlayRenderer = require 'renderer_volume_overlay'
 
 -- GLOBALS
+glob = {}
 
-volume_renderer = VolumeRenderer()
-volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
+local decals = Catalog.new(Catalog.decals)
+local sprites = Catalog.new(Catalog.sprites)
 
-level = Level('basement', {
+local volume_renderer = VolumeRenderer()
+local volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
+
+
+local level = Level('basement', {
   [0] = 'scratch',
   [1] = 'map01',
   [2] = 'map02',
@@ -42,9 +47,8 @@ end
 
 -- CONSTANTS
 
-WINDOW_WIDTH = 960
-WINDOW_HEIGHT = 720
-
+local WINDOW_WIDTH = 960
+local WINDOW_HEIGHT = 720
 
 -- OBJECT
 
@@ -70,22 +74,13 @@ function GameMain.load()
     minwidth = WINDOW_WIDTH, 
     minheight = WINDOW_HEIGHT})
 
-  textures.load()
   -- fonts
   engyne.set_default_font()
   game:set_level(level, 1)
-  game:set_player_position(51.5, 54.5, math.pi / 2)
-
-  local kid = 10000
-  for i = 1, 13 do
-    local key = Key.random()
-    game.player.inventory[kid] = key
-    kid = kid + 1
-    key:render()
-  end
+  game:set_player_position(50, 54.5, -math.pi)
   game:update_inventory()
 
-  volume_renderer:setup(0, 0 , 320, 240, textures.image_data)
+  volume_renderer:setup(0, 0 , 320, 240, decals.image_data, sprites.image_data)
 end
 
 function GameMain.resize(w, h)

@@ -85,8 +85,10 @@ end
 
 local VRR = 12
 local VKO = 5
+local blink = 0
 
 function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
+  blink = blink + dt
   -- love.graphics.setScissor(self.vr.x, self.vr.y, self.vr.width, self.vr.height)
   love.graphics.setCanvas(self.canvas)
   love.graphics.clear()
@@ -95,6 +97,16 @@ function VolumeOverlayRenderer:draw(map, game, dt, fullscreen)
   if game.overlay_text then
     engyne.set_color('amber', 5)
     love.graphics.printf(game.overlay_text, self.width / 2 - 100, 10, 200, 'center')
+  end
+
+  if game.dialogue then
+    engyne.set_color('darkgrey', 4)
+    love.graphics.rectangle('fill', self.width / 2 - 120, 10, 240, 80)
+    engyne.set_color(unpack(game.dialogue.color))
+    love.graphics.printf(game.dialogue.text, self.width / 2 - 80, 10, 200, 'left')
+    if blink % 1 < 0.5 then
+      love.graphics.printf('[space]', self.width / 2 - 120, 70, 240, 'center')
+    end
   end
 
   if game.keyring.state ~= 'closed'  then
