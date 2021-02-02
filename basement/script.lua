@@ -8,6 +8,7 @@ local keys = {
   cellar_key = Key.random(Key.Material.COPPER),
   fake_key_1 = Key.random(),
   fake_key_2 = Key.random(),
+  garage_key = Key.random(),
 }
 
 local wrong_key_ramble = {
@@ -41,6 +42,13 @@ local locks = {
     key_type = keys.cellar_key.key_type,
     wording = keys.cellar_key.wording,
     biting = keys.cellar_key.biting,
+    locked = true,
+    inserted_key = nil,
+  },
+  ['garage.door'] = {
+    key_type = keys.garage_key.key_type,
+    wording = keys.garage_key.wording,
+    biting = keys.garage_key.biting,
     locked = true,
     inserted_key = nil,
   },
@@ -101,8 +109,6 @@ function dialogue(id)
       text = 'Right... the wine. Now where did I put that cellar key?',
       color = col_myself,
     }
-  elseif id == 'intro.04' then
-    game.dialogue = nil
   elseif id == 'fireplace.1' then
     game.dialogue = {
       id = 'fireplace.2',
@@ -110,9 +116,28 @@ function dialogue(id)
       text = "It's a bit low, but if I [C]rouch I can fit.",
       color = col_myself,
     }
-  elseif id == 'fireplace.2' then
-     game.dialogue = nil
-  elseif id == 'ramble' then
+  elseif id == 'winerack.1' then
+    game.dialogue = {
+      id = 'winerack.2',
+      image = nil,
+      text = "Anyways, let me grab one and go up. It's freezing down here.",
+      color = col_myself,
+    }
+  elseif id == 'bunker.1' then
+    game.dialogue = {
+      id = 'bunker.2',
+      image = nil,
+      text = "Sometimes I wonder if that was a good idea.",
+      color = col_myself,
+    }
+  elseif id == 'closed.bunker.1' then
+    game.dialogue = {
+      id = 'ramble',
+      image = nil,
+      text = "I'll have to find another way to get out of here.",
+      color = col_myself,
+    }
+  else
     game.dialogue = nil
   end
 end
@@ -157,6 +182,9 @@ function trigger_door(alias, game)
   elseif not locks[alias].locked then
     local door_id = game.map.volatile.raliases[alias]
     toggle_door(door_id, game)
+    print(game.keyring.state)
+    game.keyring.state = 'closing'
+    print(game.keyring.state)
   elseif game.keyring.state == 'open' and game:chosen_key() then
     local ck = game:chosen_key()
     if Key.fits(ck, locks[alias]) then
@@ -183,6 +211,12 @@ function near(id, game)
     game.overlay_text = 'Press [E] to pick up the keys off the wall.'
   elseif alias == '_entrance.door' then
     near_door('entrance.door', game)
+    game.dialogue = {
+      id = 'ramble',
+      image = nil,
+      text = "I wonder if this little fella is important.",
+      color = col_myself,
+    }
   elseif alias == '_entrance.fireplace' then
     if not flags['commented.on.fireplace'] then
       game.dialogue = {
@@ -193,8 +227,50 @@ function near(id, game)
       }
       flags['commented.on.fireplace'] = true
     end
+  elseif alias == '_wine.rack' then
+    if not flags['commented.on.winerack'] then
+      game.dialogue = {
+        id = 'winerack.1',
+        image = nil,
+        text = "We should drink more, or buy less, thing is hopelessly full.",
+        color = col_myself,
+      }
+      flags['commented.on.winerack'] = true
+    end
+    if not flags['grabbed.a.bottle'] then
+      game.overlay_text = 'Grab a bottl[E]'
+    end
+  elseif alias == '_garage.key' and not flags['has.garage.key'] then
+    game.overlay_text = 'Press [E] to pick up the key.'
+  elseif alias == '_bunker.door' then
+    if flags['grabbed.a.bottle'] and not flags['commented.on.closedbunker'] then
+      game.dialogue = {
+        id = 'closed.bunker.1',
+        image = nil,
+        text = "Scratch that... It would have been a great idea to finish the damn job.",
+        color = col_myself,
+      }
+      flags['commented.on.closedbunker'] = true
+      local bdid = game.map.volatile.raliases['_bunker.door']
+      game.map.triggers[bdid].r = 0
+    end
   elseif alias == '_cellar.door' then
     near_door('cellar.door', game)
+  elseif alias == '_garage.door' then
+    near_door('garage.door', game)
+  elseif alias == '_garage.crate' and not flags['moved.the.crate'] then
+    if not flags['commented.on.crate'] then
+      game.dialogue = {
+        id = 'ramble',
+        image = nil,
+        text = "Looks like there is a hole behind the crate?",
+        color = col_myself,
+      }
+      flags['commented.on.crate'] = true
+    end
+    game.overlay_text = 'Push away the crat[E]'
+  elseif alias == '_tunnel.door' then
+    near_door('tunnel.door', game)
   end
 end
 
@@ -238,37 +314,57 @@ function trigger(id, trigger, game)
     game:update_inventory()
     flags['has.entrance.key'] = true
   elseif alias == '_cellar.keys' then
+    local wid = game.map.volatile.raliases['cellar.keys.wall']
+    game.map.walls[wid].decals = {}
     game.player.inventory[Map.get_id(game.map)] = keys.fake_key_1
-    game.player.inventory[Map.get_id(game.map)] = keys.cellar_key
     game.player.inventory[Map.get_id(game.map)] = keys.fake_key_2
+    game.player.inventory[Map.get_id(game.map)] = keys.cellar_key
     game:update_inventory()
     flags['has.cellar.keys'] = true
   elseif alias == '_entrance.door' then
     trigger_door('entrance.door', game)
-  end
-  if id == 621 then
-    local door = game.map.splits[608]
-    if door.open or (not door.open and door.open_per < 1) then
-      door.open = false
-      game:run_loop(1, 608, true, function (dt)
-        door.open_per = door.open_per + 1 * dt
-        if door.open_per >= 1 then
-          door.open_per = 1
-          return true
-        end
-        return false
-      end)
-    else
-      game:run_loop(1, 608, true, function (dt)
-        door.open_per = door.open_per - 1 * dt
-        if door.open_per <= 0 then
-          door.open_per = 0
-          door.open = true
-          return true
-        end
-        return false
-      end)
-    end
+  elseif alias == '_cellar.door' then
+    trigger_door('cellar.door', game)
+  elseif alias == '_wine.rack' then
+    local dcid = game.map.volatile.raliases['bunker.door.closed']
+    local doid = game.map.volatile.raliases['bunker.door.open']
+    local wrid = game.map.volatile.raliases['_wine.rack']
+    game.map.rooms[dcid].floor_height = -1
+    game.map.rooms[doid].floor_height = -3
+    game.map.triggers[wrid].r = 0
+    Map.update_bsp(game.map)
+    flags['grabbed.a.bottle'] = true
+    game.dialogue = {
+      id = 'winerack.3',
+      image = nil,
+      text = "The fuck was that?",
+      color = col_myself,
+    }
+  elseif alias == '_garage.key' then
+    id, _ = game.map:pick_up('garage.key')
+    game.player.inventory[id] = keys.garage_key
+    game:update_inventory()
+    flags['has.garage.key'] = true
+  elseif alias == '_garage.door' then
+    trigger_door('garage.door', game)
+  elseif alias == '_garage.crate' and not flags['moved.the.crate'] then
+    game.dialogue = {
+      id = 'ramble',
+      image = nil,
+      text = "Hnnnngg!",
+      color = col_myself,
+    }
+    local u1id = game.map.volatile.raliases['garage.crate.unmoved1']
+    local u2id = game.map.volatile.raliases['garage.crate.unmoved2']
+    local m1id = game.map.volatile.raliases['garage.crate.moved1']
+    local m2id = game.map.volatile.raliases['garage.crate.moved2']
+    game.map.rooms[u2id].floor_height = -3
+    game.map.rooms[m1id].floor_height = -2.25
+    game.map.rooms[m2id].floor_height = -2.25
+    flags['moved.the.crate'] = true
+    game.map.rooms[u1id].ambient_light = 10
+    game.map.rooms[724].ambient_light = 10
+    Map.update_bsp(game.map)
   end
 end
 
@@ -281,8 +377,20 @@ function alttrigger(id, trigger, game)
     if locks['entrance.door'].inserted_key then
       locks['entrance.door'].inserted_key = nil
     end
+  elseif alias == '_cellar.door' then
+    if locks['cellar.door'].inserted_key then
+      locks['cellar.door'].inserted_key = nil
+    end
+  elseif alias == '_garage.door' then
+    if locks['garage.door'].inserted_key then
+      locks['garage.door'].inserted_key = nil
+    end
+  elseif alias == '_tunnel.door' then
+    if locks['tunnel.door'].inserted_key then
+      locks['tunnel.door'].inserted_key = nil
+    end
   end
- 
+
 end
 
 function entered(map_id, room_id, from_id, game)
@@ -352,6 +460,18 @@ function entered(map_id, room_id, from_id, game)
   if room_id == 529 and from_id == 530 then
     game:set_layer(1)
     game.audio.club:play()
+  end
+
+  if alias == 'bunker.entrance' then
+    if not flags['grabbed.a.bottle'] and not flags['commented.on.bunkerdoor'] then
+      game.dialogue = {
+        id = 'bunker.1',
+        image = nil,
+        text = "Used to be an old bunker. Previous owner remade it to a cellar.",
+        color = col_myself,
+      }
+      flags['commented.on.bunkerdoor'] = true
+    end
   end
 
 end
