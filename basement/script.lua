@@ -1,6 +1,9 @@
+local geom = require 'geom'
 local util = require 'util'
 local Map = require 'map'
 local Key = require 'object/key'
+local Line = require 'line'
+local raycaster = require 'raycaster'
 
 local keys = {
   tunnel_key = Key.random(Key.Material.STEEL),
@@ -65,6 +68,16 @@ local flags = {}
 
 local col_myself = { 'amber', 6 }
 local col_partner = { 'copper', 6 }
+
+local evil = {
+  state = 'idle',
+  tick = 0,
+  x = 59.29,
+  y = 51.875,
+  nx = nil,
+  ny = nil,
+  speed = 0.5,
+}
 
 function init(game)
   game.audio.club:play()
@@ -137,6 +150,8 @@ function dialogue(id)
       text = "I'll have to find another way to get out of here.",
       color = col_myself,
     }
+  elseif id == 'dead' then
+    love.event.quit(0)
   else
     game.dialogue = nil
   end
@@ -278,7 +293,7 @@ function toggle_door(id, game)
   local door = game.map.splits[id]
   if door.open or (not door.open and door.open_per < 1) then
     door.open = false
-    game:run_loop(1, id, true, function (dt)
+    game:run_loop(game.layer, id, true, function (dt)
       door.open_per = door.open_per + 1 * dt
       if door.open_per >= 1 then
         door.open_per = 1
@@ -287,7 +302,7 @@ function toggle_door(id, game)
       return false
     end)
   else
-    game:run_loop(1, id, true, function (dt)
+    game:run_loop(game.layer, id, true, function (dt)
       door.open_per = door.open_per - 1 * dt
       if door.open_per <= 0 then
         door.open_per = 0
@@ -472,6 +487,56 @@ function entered(map_id, room_id, from_id, game)
       }
       flags['commented.on.bunkerdoor'] = true
     end
+  elseif alias == 'lair' and falias == 'lair.doorstep' then
+    local loop_id = Map.get_id(game.map)
+    local crid = game.map.volatile.raliases['crawler']
+    game:run_loop(2, loop_id, false, function (dt)
+      evil.tick = evil.tick + dt
+      if evil.state == 'idle' then
+        if evil.tick >= 1 then
+          game.map.things[crid].name = 'crawler-standing'
+          evil.state = 'ready1'
+          evil.tick = 0
+        end
+      elseif evil.state == 'ready1' then
+        if evil.tick >= 1 then
+          game.map.things[crid].name = 'crawler-stand'
+          evil.state = 'ready2'
+          evil.tick = 0
+        end
+      elseif evil.state == 'ready2' then
+        if evil.tick >= 1 then
+          evil.state = 'chasing'
+          evil.tick = 0
+          evil.nx = 55.5
+          evil.ny = 52
+        end
+      elseif evil.state == 'chasing' then
+        local region = game.map:room_node(raycaster.get_region_node(game.map.volatile.bsp, evil.x, evil.y))
+        region.ambient_light = 0
+        if math.sqrt(geom.sqd(evil.x, evil.y, evil.nx, evil.ny)) > evil.speed * dt then
+          local v = Line(evil.x, evil.y, evil.nx, evil.ny)
+          local ux, uy = Line.unit_vector(v)
+          evil.x = evil.x + ux * evil.speed * dt
+          evil.y = evil.y + uy * evil.speed * dt
+        else
+          evil.x = evil.nx
+          evil.y = evil.ny
+        end
+        game.map.things[crid].x = evil.x
+        game.map.things[crid].y = evil.y
+        print(evil.x, evil.y)
+
+        if game.player.region.ambient_light == 0 then
+          game.dialogue = {
+            id = 'dead',
+            image = nil,
+            text = "AAARRGHBlergh!",
+            color = col_myself,
+          }
+        end
+      end
+    end)
   end
 
 end
