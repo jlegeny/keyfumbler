@@ -543,6 +543,7 @@ function Map:update_bsp()
   if self.volatile.delegate ~= nil then
     self.volatile.delegate.notify('map_updated')
   end
+  debug(' ... all OK')
 end
 
 return Map

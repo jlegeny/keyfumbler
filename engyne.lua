@@ -15,6 +15,11 @@ function get_color(min, max, intensity)
   return {min[1] + dr * step, min[2] + dg * step, min[3] + dg * step}
 end
 
+engyne.release = function()
+  default_font:release()
+  small_font:release()
+end
+
 engyne.set_editor_color = function(color, opacity)
   if opacity == nil then
     opacity = 100

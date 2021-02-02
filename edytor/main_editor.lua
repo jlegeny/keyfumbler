@@ -51,23 +51,23 @@ level = Level('basement', {
   [1] = 'map01',
   [2] = 'map02',
 })
-local mapindex = 1
-local map = nil
-local game = nil
-local level_renderer = LevelRenderer()
-local level_overlay_renderer = LevelOverlayRenderer(level_renderer)
-local tools_renderer = ToolsRenderer()
-local selection_renderer = SelectionRenderer()
-local history_renderer = HistoryRenderer()
-local info_renderer = InfoRenderer()
-local drawinfo_renderer = DrawInfoRenderer()
-local item_renderer = ItemRenderer()
-local tabs_renderer = TabsRenderer()
-local volume_renderer = VolumeRenderer()
-local volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
-local statusbar_renderer = StatusBarRenderer()
-local decals = Catalog.new(Catalog.decals)
-local sprites = Catalog.new(Catalog.sprites)
+mapindex = 1
+map = nil
+game = nil
+level_renderer = LevelRenderer()
+level_overlay_renderer = LevelOverlayRenderer(level_renderer)
+tools_renderer = ToolsRenderer()
+selection_renderer = SelectionRenderer()
+history_renderer = HistoryRenderer()
+info_renderer = InfoRenderer()
+drawinfo_renderer = DrawInfoRenderer()
+item_renderer = ItemRenderer()
+tabs_renderer = TabsRenderer()
+volume_renderer = VolumeRenderer()
+volume_overlay_renderer = VolumeOverlayRenderer(volume_renderer)
+statusbar_renderer = StatusBarRenderer()
+decals = Catalog.new(Catalog.decals)
+sprites = Catalog.new(Catalog.sprites)
 
 WINDOW_WIDTH = 980
 WINDOW_HEIGHT = 640
@@ -230,6 +230,9 @@ end
 
 function EditorMain.quit()
   level:save(mapindex)
+  game:release()
+  engyne.release()
+  print('bye!')
   return false
 end
 

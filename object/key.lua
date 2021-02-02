@@ -69,14 +69,14 @@ Key.WIDTH = 180
 Key.HEIGHT = 60
 Key.DEPTH = 12
 
-function Key.new(key_type, material, body, pinning, wording)
+function Key.new(key_type, material, body, biting, wording)
   local self = {}
   setmetatable(self, Key)
   self.kind = 'key'
   self.key_type = key_type
   self.material = material
   self.body = body
-  self.pinning = pinning
+  self.biting = biting
   self.wording = wording
 
   self.hole_x = 0
@@ -121,6 +121,17 @@ function Key:fits(lock)
 end
 
 function Key.turns_in(lock)
+  if not lock.inserted_key then
+    return false
+  end
+  if #lock.inserted_key.biting ~= #lock.biting then
+    return false
+  end
+  for i = 1, #lock.inserted_key.biting do
+    if lock.inserted_key.biting[i] ~= lock.biting[i] then
+      return false
+    end
+  end
   return true
 end
 
@@ -181,7 +192,7 @@ function Key:carve()
     end
 
     -- carve pins
-    for pin, depth in ipairs(self.pinning) do
+    for pin, depth in ipairs(self.biting) do
       for z, plane in pairs(self.voxels) do
         for y = blade_start_y + blade_height - depth, blade_start_y + blade_height do
           local w = y - (blade_start_y + blade_height - depth)
@@ -348,11 +359,11 @@ function Key.random(material)
   end
   local body = Key.Body.FAB
 
-  local pinning = {}
+  local biting = {}
   if key_type == Key.Type.PIN_TUMBLER then
     local pins = math.random(3, 6)
     for pin = 1, pins do
-      table.insert(pinning, math.random(4, 12))
+      table.insert(biting, math.random(4, 12))
     end
   end
 
@@ -367,7 +378,7 @@ function Key.random(material)
     wid, w = next(Key.Keyway[body], wid)
   end
 
-  return Key.new(key_type, material, body, pinning, wording)
+  return Key.new(key_type, material, body, biting, wording)
 end
 
 return Key

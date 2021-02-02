@@ -50,6 +50,14 @@ function Game.new()
   return self
 end
 
+function Game:release()
+  self.audio.ambience:stop()
+  self.audio.club:stop()
+  self.audio.ambience:release()
+  self.audio.club:release()
+end
+
+
 function Game:set_level(level, layer)
   self.level = level
   self.layer = layer

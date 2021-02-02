@@ -62,7 +62,8 @@ function VolumeOverlayRenderer:render_keyring(game)
       goto continue
     end
 
-    local angle = 2 * math.pi * (key_n - self.ring_pos) / (game.volatile.key_count + 1) - math.pi / 2
+    local kc = math.max(8, game.volatile.key_count + 1)
+    local angle = 2 * math.pi * (key_n - self.ring_pos) / kc - math.pi / 2
     local center_x = self.width / 2 + math.cos(angle) * 30
     local center_y = self.height / 2 + math.sin(angle) * 30 + posy
 
