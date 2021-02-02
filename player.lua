@@ -60,7 +60,7 @@ function Player:has(map, alias)
 end
 
 function Player:height()
-  return 1.1 - self.crouch
+  return 1.3 - self.crouch
 end
 
 function Player:eye_height()

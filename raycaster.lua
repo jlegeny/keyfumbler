@@ -133,7 +133,7 @@ RayCaster.fast_collisions = function(map, vector)
           end
           collisions[#collisions].decals = cdec
         end
-        if not node.is_split then
+        if not node.is_split or (room and room.floor_height == room.ceiling_height) then
           return collisions
         end
       end

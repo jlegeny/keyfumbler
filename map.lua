@@ -212,7 +212,6 @@ function Map:object_by_id(id)
   end
 end
 
-
 function Map:get_id()
   local ret = self.next_id
   self.next_id = self.next_id + 1

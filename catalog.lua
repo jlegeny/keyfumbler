@@ -7,8 +7,8 @@ setmetatable(Catalog, {
   end,
 })
 
-Catalog.decals = {'missing', 'painting-01', 'wood-01', 'wood-02', 'pantry-01', 'pantry-02', 'wine-rack', 'rift'}
-Catalog.sprites = {'missing', 'key-fab-brass', 'bulb', 'crawler', 'crawler-crouch', 'crawler-standing', 'crawler-stand'}
+Catalog.decals = {'missing', 'painting-01', 'wood-01', 'wood-02', 'pantry-01', 'pantry-02', 'wine-rack', 'hanging-keyring'}
+Catalog.sprites = {'missing', 'key-fab-brass', 'bulb', 'crawler-crouch', 'crawler-standing', 'crawler-stand'}
 
 Catalog.new = function(image_names)
   local self = {}
