@@ -76,8 +76,12 @@ local evil = {
   y = 51.875,
   nx = nil,
   ny = nil,
-  speed = 0.5,
+  speed = 0.25,
+  route = {
+    839, 724, 725, 726, 
+  }
 }
+
 
 function init(game)
   game.audio.club:play()
@@ -197,9 +201,7 @@ function trigger_door(alias, game)
   elseif not locks[alias].locked then
     local door_id = game.map.volatile.raliases[alias]
     toggle_door(door_id, game)
-    print(game.keyring.state)
     game.keyring.state = 'closing'
-    print(game.keyring.state)
   elseif game.keyring.state == 'open' and game:chosen_key() then
     local ck = game:chosen_key()
     if Key.fits(ck, locks[alias]) then
@@ -508,8 +510,10 @@ function entered(map_id, room_id, from_id, game)
         if evil.tick >= 1 then
           evil.state = 'chasing'
           evil.tick = 0
-          evil.nx = 55.5
-          evil.ny = 52
+          local nr = game.map.rooms[evil.route[1]]
+          table.remove(evil.route, 1)
+          evil.nx = nr.x
+          evil.ny = nr.y
         end
       elseif evil.state == 'chasing' then
         local region = game.map:room_node(raycaster.get_region_node(game.map.volatile.bsp, evil.x, evil.y))
@@ -522,10 +526,16 @@ function entered(map_id, room_id, from_id, game)
         else
           evil.x = evil.nx
           evil.y = evil.ny
+
+          if #evil.route > 0 then
+            local nr = game.map.rooms[evil.route[1]]
+            table.remove(evil.route, 1)
+            evil.nx = nr.x
+            evil.ny = nr.y
+          end
         end
         game.map.things[crid].x = evil.x
         game.map.things[crid].y = evil.y
-        print(evil.x, evil.y)
 
         if game.player.region.ambient_light == 0 then
           game.dialogue = {
