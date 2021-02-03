@@ -207,6 +207,14 @@ RayCaster.cached_light_at = function(map, x, y, cache)
   return cache[ux][uy]
 end
 
+RayCaster.precompute_cache_around = function(map, x, y, d, cache)
+  for ix = x - d, x + d do
+    for iy = y - d, y + d do
+      _ = RayCaster.cached_light_at(map, ix, iy, cache)
+    end
+  end
+end
+
 RayCaster.extended_collisions = function(map, vector)
   local collisions = RayCaster.fast_collisions(map, vector)
   -- light collisions

@@ -1,5 +1,6 @@
 local geom = require 'geom'
 local util = require 'util'
+local Decal = require 'decal'
 local Map = require 'map'
 local Key = require 'object/key'
 local Line = require 'line'
@@ -94,7 +95,8 @@ local evil = {
   speed = 0.25,
   route = {
     839, 724, 725, 726, 
-  }
+  },
+  music_tick = 0,
 }
 
 
@@ -115,6 +117,7 @@ function init(game)
   -- cheats
   -- entrance key
   -- game.player.inventory[622] = keys.entrance_key
+  -- game.player.inventory[623] = keys.cellar_key
   -- locks['entrance.door'].locked = false
   game:update_inventory()
 end
@@ -217,6 +220,23 @@ function trigger_door(alias, game)
     local door_id = game.map.volatile.raliases[alias]
     toggle_door(door_id, game)
     game.keyring.state = 'closing'
+    if alias == 'garage.door' and not flags['opened.garage.door'] then
+      game.audio.tension:setVolume(0)
+      game.audio.tension:play()
+      local loop_id = Map.get_id(game.map)
+      game:run_loop(2, loop_id, false, function (dt)
+        evil.music_tick = evil.music_tick + dt * 0.3
+        if evil.music_tick >= 1 then
+          game.audio.tension:setVolume(1)
+          game.audio.ambience:stop()
+          return true
+        end
+        game.audio.tension:setVolume(evil.music_tick)
+        game.audio.ambience:setVolume(1 - evil.music_tick)
+        return false
+      end)
+      flags['opened.garage.door'] = true
+    end
   elseif game.keyring.state == 'open' and game:chosen_key() then
     local ck = game:chosen_key()
     if Key.fits(ck, locks[alias]) then
@@ -347,8 +367,8 @@ function trigger(id, trigger, game)
   elseif alias == '_cellar.keys' then
     local wid = game.map.volatile.raliases['cellar.keys.wall']
     game.map.walls[wid].decals = {}
-    game.player.inventory[Map.get_id(game.map)] = keys.fake_key_1
-    game.player.inventory[Map.get_id(game.map)] = keys.fake_key_2
+    game.player.inventory[Map.get_id(game.map)] = keys.fake_key
+    game.player.inventory[Map.get_id(game.map)] = keys.penultimate_key
     game.player.inventory[Map.get_id(game.map)] = keys.cellar_key
     game:update_inventory()
     flags['has.cellar.keys'] = true
@@ -358,10 +378,14 @@ function trigger(id, trigger, game)
     trigger_door('cellar.door', game)
   elseif alias == '_wine.rack' then
     local dcid = game.map.volatile.raliases['bunker.door.closed']
+    local dcdid = game.map.volatile.raliases['bunker.door.closed.decal']
     local doid = game.map.volatile.raliases['bunker.door.open']
     local wrid = game.map.volatile.raliases['_wine.rack']
-    game.map.rooms[dcid].floor_height = -1
+    game.map.rooms[dcid].floor_height = -0.75
     game.map.rooms[doid].floor_height = -3
+    game.map.splits[dcdid].decals = {
+      Decal('bunker-door', 0, 0, 1, 1)
+    }
     game.map.triggers[wrid].r = 0
     Map.update_bsp(game.map)
     flags['grabbed.a.bottle'] = true

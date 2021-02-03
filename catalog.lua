@@ -7,7 +7,7 @@ setmetatable(Catalog, {
   end,
 })
 
-Catalog.decals = {'missing', 'painting-01', 'wood-01', 'wood-02', 'pantry-01', 'pantry-02', 'wine-rack', 'hanging-keyring', 'wooden-padlock-door', 'wooden-padlock-door-unlocked', 'door-handle', 'cellar'}
+Catalog.decals = {'missing', 'painting-01', 'wood-01', 'wood-02', 'pantry-01', 'pantry-02', 'wine-rack', 'hanging-keyring', 'wooden-padlock-door', 'wooden-padlock-door-unlocked', 'door-handle', 'cellar', 'bunker-door'}
 Catalog.sprites = {'missing', 'key-fab-brass', 'bulb', 'crawler-crouch', 'crawler-standing', 'crawler-stand'}
 
 Catalog.new = function(image_names)

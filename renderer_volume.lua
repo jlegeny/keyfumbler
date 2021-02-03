@@ -84,6 +84,7 @@ function VolumeRenderer:invalidate_light_cache(rect)
   end
 end
 
+
 function VolumeRenderer:toggle_mode()
   if self.mode == 'photo' then
     self.mode = 'light'

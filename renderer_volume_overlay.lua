@@ -73,13 +73,13 @@ function VolumeOverlayRenderer:render_keyring(game)
       self.target_ring_pos = key_n
       selected_key = object
       if game.keyring.key_inserted then
-        scale = 0.75
+        scale = 0.6
       end
     else
       if game.keyring.key_inserted then
         scale = 0.3
       else
-        scale = 0.4
+        scale = 0.45
       end
     end
 

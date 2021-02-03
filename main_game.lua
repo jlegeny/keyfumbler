@@ -78,6 +78,8 @@ function GameMain.load()
   engyne.set_default_font()
   game:set_level(level, 1)
   game:set_player_position(50, 54.5, -math.pi)
+  --game:set_level(level, 2)
+  --game:set_player_position(53, 51.75, 0)
   game:update_inventory()
 
   volume_renderer:setup(0, 0 , 320, 240, decals.image_data, sprites.image_data)
@@ -87,6 +89,7 @@ function GameMain.resize(w, h)
 end
 
 function GameMain.quit()
+  game:release()
   return false
 end
 

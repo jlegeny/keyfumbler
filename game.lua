@@ -18,13 +18,15 @@ function Game.new()
   setmetatable(self, Game)
   self.audio = {
     ambience = love.audio.newSource('assets/ambience.ogg', 'static'),
+    tension = love.audio.newSource('assets/tension.ogg', 'static'),
     club = love.audio.newSource('assets/club.ogg', 'static')
   }
   self.audio.ambience:setVolume(0)
   self.audio.ambience:setLooping(true)
+  self.audio.tension:setVolume(0)
+  self.audio.tension:setLooping(true)
   self.audio.club:setVolume(1)
   self.audio.club:setLooping(true)
-  -- self.audio.ambience:play()
 
   self.player = Player()
   self.level = nil
@@ -221,23 +223,25 @@ function Game:update(dt)
   if self.dialogue then
   elseif self.player.posture == Player.Posture.STAND or self.player.posture == Player.Posture.CROUCH then
     -- player controls
-    if love.keyboard.isDown('a') then
-      self.player:rotate_ccw(dt)
-    elseif love.keyboard.isDown('d') then
-      self.player:rotate_cw(dt)
-    end
-
-    local player_speed = 'walk'
-    if self.player.posture == Player.Posture.STAND then
-      if love.keyboard.isDown('lshift') then
-        player_speed = 'sprint'
+    if not self.keyring.key_inserted then
+      if love.keyboard.isDown('a') then
+        self.player:rotate_ccw(dt)
+      elseif love.keyboard.isDown('d') then
+        self.player:rotate_cw(dt)
       end
-    end
 
-    if love.keyboard.isDown('w') then
-      self.player:step_forward(dt, player_speed, self.map)
-    elseif love.keyboard.isDown('s') then
-      self.player:step_backward(dt, player_speed, self.map)
+      local player_speed = 'walk'
+      if self.player.posture == Player.Posture.STAND then
+        if love.keyboard.isDown('lshift') then
+          player_speed = 'sprint'
+        end
+      end
+
+      if love.keyboard.isDown('w') then
+        self.player:step_forward(dt, player_speed, self.map)
+      elseif love.keyboard.isDown('s') then
+        self.player:step_backward(dt, player_speed, self.map)
+      end
     end
   end
 
