@@ -38,6 +38,7 @@ function Game.new()
     state = 'closed',
     position = 0,
     selected_key = 0,
+    key_inserted = false,
   }
 
   self.volatile = {
@@ -165,7 +166,7 @@ function Game:keypressed(key, unicode)
     end
   end
 
-  if key == 'f' and self.volatile.key_count > 0 then
+  if key == 'f' and self.volatile.key_count > 0 and not self.keyring.key_inserted then
     local kr = self.keyring
     if kr.state == 'closed' or kr.state == 'closing' then
       kr.state = 'opening'
@@ -174,7 +175,7 @@ function Game:keypressed(key, unicode)
     end
   end
 
-  if self.keyring.state == 'open' then
+  if self.keyring.state == 'open' and not self.keyring.key_inserted then
     local sk = self.keyring
     if key == 'right' or key == '3' then
       sk.selected_key = (sk.selected_key + 1) % self.volatile.key_count

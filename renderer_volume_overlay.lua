@@ -67,13 +67,25 @@ function VolumeOverlayRenderer:render_keyring(game)
     local center_x = self.width / 2 + math.cos(angle) * 30
     local center_y = self.height / 2 + math.sin(angle) * 30 + posy
 
+    local scale = 0.5
     if key_n == game.keyring.selected_key then
-      Key.draw_outline(object, center_x, center_y, angle, 0.5)
+      -- Key.draw_outline(object, center_x, center_y, angle, 0.5)
       self.target_ring_pos = key_n
       selected_key = object
+      if game.keyring.key_inserted then
+        scale = 0.75
+      end
+    else
+      if game.keyring.key_inserted then
+        scale = 0.3
+      else
+        scale = 0.4
+      end
     end
 
-    Key.draw_side(object, center_x, center_y, angle, 0.5)
+    Key.draw_side(object, center_x, center_y, angle, scale)
+
+
     
     key_n = key_n + 1
     ::continue::

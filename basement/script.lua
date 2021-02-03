@@ -6,12 +6,13 @@ local Line = require 'line'
 local raycaster = require 'raycaster'
 
 local keys = {
-  tunnel_key = Key.random(Key.Material.STEEL),
-  entrance_key = Key.random(Key.Material.BRASS),
-  cellar_key = Key.random(Key.Material.COPPER),
-  fake_key_1 = Key.random(),
-  fake_key_2 = Key.random(),
+  tunnel_key = Key.random(),
+  entrance_key = Key.random(),
+  cellar_key = Key.random(),
+  penultimate_key = Key.random(),
+  fake_key = Key.random(),
   garage_key = Key.random(),
+  final_key = Key.random(),
 }
 
 local wrong_key_ramble = {
@@ -61,7 +62,21 @@ local locks = {
     biting = keys.tunnel_key.biting,
     locked = true,
     inserted_key = nil,
-  }
+  },
+  ['penultimate.door'] = {
+    key_type = keys.penultimate_key.key_type,
+    wording = keys.penultimate_key.wording,
+    biting = keys.penultimate_key.biting,
+    locked = true,
+    inserted_key = nil,
+  },
+  ['final.door'] = {
+    key_type = keys.final_key.key_type,
+    wording = keys.final_key.wording,
+    biting = keys.final_key.biting,
+    locked = true,
+    inserted_key = nil,
+  },
 }
 
 local flags = {}
@@ -173,7 +188,7 @@ function near_door(alias, game)
       if game.keyring.state == 'closed' then
         game.overlay_text = 'Press [F] to whip out the key.'
       elseif game.keyring.state == 'open' then
-        game.overlay_text = 'Press [E] to insert the key.'
+        game.overlay_text = 'Press [E] to insert the key, [1] or [3] to select.'
       end
     else
       game.overlay_text = 'The door is locked and you have no keys.'
@@ -206,6 +221,7 @@ function trigger_door(alias, game)
     local ck = game:chosen_key()
     if Key.fits(ck, locks[alias]) then
       locks[alias].inserted_key = game:chosen_key()
+      game.keyring.key_inserted = true
     else
       game.dialogue = {
         id = 'ramble',
@@ -228,12 +244,6 @@ function near(id, game)
     game.overlay_text = 'Press [E] to pick up the keys off the wall.'
   elseif alias == '_entrance.door' then
     near_door('entrance.door', game)
-    game.dialogue = {
-      id = 'ramble',
-      image = nil,
-      text = "I wonder if this little fella is important.",
-      color = col_myself,
-    }
   elseif alias == '_entrance.fireplace' then
     if not flags['commented.on.fireplace'] then
       game.dialogue = {
@@ -288,6 +298,10 @@ function near(id, game)
     game.overlay_text = 'Push away the crat[E]'
   elseif alias == '_tunnel.door' then
     near_door('tunnel.door', game)
+  elseif alias == '_penultimate.door' then
+    near_door('penultimate.door', game)
+  elseif alias == '_final.door' then
+    near_door('final.door', game)
   end
 end
 
@@ -382,6 +396,24 @@ function trigger(id, trigger, game)
     game.map.rooms[u1id].ambient_light = 10
     game.map.rooms[724].ambient_light = 10
     Map.update_bsp(game.map)
+  elseif alias == '_tunnel.door' then
+    trigger_door('tunnel.door', game)
+  elseif alias == '_penultimate.door' then
+    trigger_door('penultimate.door', game)
+  elseif alias == '_final.key' then
+    id, _ = game.map:pick_up('final.key')
+    game.player.inventory[id] = keys.final_key
+    game:update_inventory()
+    flags['has.final.key'] = true
+  elseif alias == '_final.door' then
+    trigger_door('final.door', game)
+  end
+end
+
+function alttrigger_door(alias, game)
+  if locks[alias].inserted_key then
+    locks[alias].inserted_key = nil
+    game.keyring.key_inserted = false
   end
 end
 
@@ -391,21 +423,17 @@ function alttrigger(id, trigger, game)
   print('alt-triggered', id, alias)
 
   if alias == '_entrance.door' then
-    if locks['entrance.door'].inserted_key then
-      locks['entrance.door'].inserted_key = nil
-    end
+    alttrigger_door('entrance.door', game)
   elseif alias == '_cellar.door' then
-    if locks['cellar.door'].inserted_key then
-      locks['cellar.door'].inserted_key = nil
-    end
+    alttrigger_door('cellar.door', game)
   elseif alias == '_garage.door' then
-    if locks['garage.door'].inserted_key then
-      locks['garage.door'].inserted_key = nil
-    end
+    alttrigger_door('garage.door', game)
   elseif alias == '_tunnel.door' then
-    if locks['tunnel.door'].inserted_key then
-      locks['tunnel.door'].inserted_key = nil
-    end
+    alttrigger_door('tunnel.door', game)
+  elseif alias == '_penultimate.door' then
+    alttrigger_door('penultimate.door', game)
+  elseif alias == '_final.door' then
+    alttrigger_door('final.door', game)
   end
 
 end
