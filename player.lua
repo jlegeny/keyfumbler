@@ -47,7 +47,7 @@ function Player:speed(gait)
   elseif gait == 'sprint' then
     return 5
   elseif gait == 'crouch' then
-    return 0.75
+    return 0.5
   end
 end
 

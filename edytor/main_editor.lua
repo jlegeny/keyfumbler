@@ -351,6 +351,8 @@ function EditorMain.keypressed(key, unicode)
       volume_renderer.flat_light = not volume_renderer.flat_light
     elseif key == '/' then
       e.state = State.DUMP
+    elseif key == '\\' then
+      map.aliases[866] = nil
     end
   elseif e.state == State.IC_DRAWING_WALL or e.state == State.IC_DRAWING_WALL_NORMAL
     or e.state == State.IC_DRAWING_SPLIT then

@@ -19,7 +19,8 @@ function Game.new()
   self.audio = {
     ambience = love.audio.newSource('assets/ambience.ogg', 'static'),
     tension = love.audio.newSource('assets/tension.ogg', 'static'),
-    club = love.audio.newSource('assets/club.ogg', 'static')
+    club = love.audio.newSource('assets/club.ogg', 'static'),
+    screech = love.audio.newSource('assets/screech.ogg', 'static'),
   }
   self.audio.ambience:setVolume(0)
   self.audio.ambience:setLooping(true)
@@ -27,6 +28,8 @@ function Game.new()
   self.audio.tension:setLooping(true)
   self.audio.club:setVolume(1)
   self.audio.club:setLooping(true)
+  self.audio.screech:setVolume(1)
+  self.audio.screech:setLooping(false)
 
   self.player = Player()
   self.level = nil
@@ -49,6 +52,7 @@ function Game.new()
 
   self.script_enabled = true
 
+  self.stress = 1
   self.loops = {}
   return self
 end
@@ -136,6 +140,7 @@ function Game:get_trigger()
 end
 
 function Game:keypressed(key, unicode)
+  key = love.keyboard.getScancodeFromKey(key)
   if key == 'insert' then
     self.player.noclip = not self.player.noclip
     print('noclip', self.player.noclip)
@@ -224,22 +229,22 @@ function Game:update(dt)
   elseif self.player.posture == Player.Posture.STAND or self.player.posture == Player.Posture.CROUCH then
     -- player controls
     if not self.keyring.key_inserted then
-      if love.keyboard.isDown('a') then
+      if love.keyboard.isScancodeDown('a') then
         self.player:rotate_ccw(dt)
-      elseif love.keyboard.isDown('d') then
+      elseif love.keyboard.isScancodeDown('d') then
         self.player:rotate_cw(dt)
       end
 
       local player_speed = 'walk'
       if self.player.posture == Player.Posture.STAND then
-        if love.keyboard.isDown('lshift') then
-          player_speed = 'sprint'
+        if love.keyboard.isScancodeDown('lshift') then
+          --player_speed = 'sprint'
         end
       end
 
-      if love.keyboard.isDown('w') then
+      if love.keyboard.isScancodeDown('w') then
         self.player:step_forward(dt, player_speed, self.map)
-      elseif love.keyboard.isDown('s') then
+      elseif love.keyboard.isScancodeDown('s') then
         self.player:step_backward(dt, player_speed, self.map)
       end
     end

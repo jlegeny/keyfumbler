@@ -84,6 +84,7 @@ local flags = {}
 
 local col_myself = { 'amber', 6 }
 local col_partner = { 'copper', 6 }
+local col_victory = { 'copperoxyde', 6 }
 
 local evil = {
   state = 'idle',
@@ -94,7 +95,7 @@ local evil = {
   ny = nil,
   speed = 0.25,
   route = {
-    839, 724, 725, 726, 
+    839, 724, 725, 726, 892, 890, 727, 894, 728, 729, 744, 745, 746 
   },
   music_tick = 0,
 }
@@ -108,7 +109,7 @@ function init(game)
     text = 'Ahhh! Finally I can rest my ears for a while.',
     color = col_myself,
   }
-  game.dialogue = nil
+  --game.dialogue = nil
   for _, key in pairs(keys) do
     Key.render(key)
   end
@@ -172,8 +173,71 @@ function dialogue(id)
       text = "I'll have to find another way to get out of here.",
       color = col_myself,
     }
+  elseif id == 'victory.1' then
+    game.dialogue = {
+      id = 'victory.2',
+      image = nil,
+      text = "THE END",
+      color = col_victory,
+    }
+  elseif id == 'victory.2' then
+    game.dialogue = {
+      id = 'victory.3',
+      image = nil,
+      text = "Thank you for playing!",
+      color = col_victory,
+    }
+  elseif id == 'victory.3' then
+    game.dialogue = {
+      id = 'victory.4',
+      image = nil,
+      text = "Music by Tijn",
+      color = col_victory,
+    }
+  elseif id == 'victory.4' then
+    game.dialogue = {
+      id = 'victory.5',
+      image = nil,
+      text = "Code by yozy",
+      color = col_victory,
+    }
+  elseif id == 'victory.5' then
+    game.dialogue = {
+      id = 'victory.6',
+      image = nil,
+      text = "Textures from Unsplash. Shengliang Deng, Jason Dent, Muradi, Rodion Kutsaev",
+      color = col_victory,
+    }
+  elseif id == 'victory.6' then
+    game.dialogue = {
+      id = 'victory.7',
+      image = nil,
+      text = "Yoko Correia Nishimiya, Rob King and A P O L L O",
+      color = col_victory,
+    }
+  elseif id == 'victory.7' then
+    game.dialogue = {
+      id = 'victory.8',
+      image = nil,
+      text = "Made for toasty, I mean Alakajam 2021",
+      color = col_victory,
+    }
+  elseif id == 'victory.8' then
+    game.dialogue = {
+      id = 'terminate',
+      image = nil,
+      text = "The game will now terminate. Stay safe.",
+      color = col_victory,
+    }
   elseif id == 'dead' then
-    love.event.quit(0)
+    game.dialogue = {
+      id = 'terminate',
+      image = nil,
+      text = "You are dead. The game will now terminate.",
+      color = col_victory,
+    }
+  elseif id == 'terminate' then
+     love.event.quit(0)
   else
     game.dialogue = nil
   end
@@ -320,8 +384,12 @@ function near(id, game)
     near_door('tunnel.door', game)
   elseif alias == '_penultimate.door' then
     near_door('penultimate.door', game)
+  elseif alias == '_final.key' and not flags['has.final.key'] then
+    game.overlay_text = 'Press [E] to pick up the key.'
   elseif alias == '_final.door' then
     near_door('final.door', game)
+  elseif alias == '_victory.door' and not flags['victory.door.opened'] then
+    game.overlay_text = 'Press [E] to open the door.'
   end
 end
 
@@ -389,12 +457,23 @@ function trigger(id, trigger, game)
     game.map.triggers[wrid].r = 0
     Map.update_bsp(game.map)
     flags['grabbed.a.bottle'] = true
-    game.dialogue = {
-      id = 'winerack.3',
-      image = nil,
-      text = "The fuck was that?",
-      color = col_myself,
-    }
+    local loop_id = Map.get_id(game.map)
+    local screech_tick = 0
+    game.audio.screech:play()
+    game:run_loop(2, loop_id, false, function (dt)
+      screech_tick = screech_tick + dt
+      if screech_tick >= 2 then
+        game.dialogue = {
+          id = 'winerack.3',
+          image = nil,
+          text = "The fuck was that?",
+          color = col_myself,
+        }
+        return true
+      end
+      return false
+    end)
+
   elseif alias == '_garage.key' then
     id, _ = game.map:pick_up('garage.key')
     game.player.inventory[id] = keys.garage_key
@@ -431,6 +510,29 @@ function trigger(id, trigger, game)
     flags['has.final.key'] = true
   elseif alias == '_final.door' then
     trigger_door('final.door', game)
+  elseif alias == '_victory.door' then
+    flags['victory.door.opened'] = true
+    local door_id = game.map.volatile.raliases['victory.door']
+    if not game.map.splits[door_id].open then
+      toggle_door(door_id, game)
+      local loop_id = Map.get_id(game.map)
+      local victory_tick = 0
+      game:run_loop(2, loop_id, false, function (dt)
+        victory_tick = victory_tick + dt * 0.3
+        if victory_tick >= 1 then
+          game.audio.tension:stop()
+          game.dialogue = {
+            id = 'victory.1',
+            image = nil,
+            text = "Well, I guess I won't be home for dinner tonight!",
+            color = col_myself,
+          }
+          return true
+        end
+        game.audio.tension:setVolume(1 - victory_tick)
+        return false
+      end)
+    end
   end
 end
 

@@ -79,7 +79,7 @@ function GameMain.load()
   game:set_level(level, 1)
   game:set_player_position(50, 54.5, -math.pi)
   --game:set_level(level, 2)
-  --game:set_player_position(53, 51.75, 0)
+  --game:set_player_position(48.5, 44.5, math.pi)
   game:update_inventory()
 
   volume_renderer:setup(0, 0 , 320, 240, decals.image_data, sprites.image_data)
